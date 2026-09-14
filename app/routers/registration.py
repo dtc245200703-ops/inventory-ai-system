@@ -10,12 +10,17 @@ from app.database import get_db
 from app.models import LoginThrottle, User
 from app.routers.users import AccountIdentity, AccountCreate, add_account
 
+
 router = APIRouter(prefix="/auth", tags=["Đăng ký"])
 
 
 class RegistrationInput(AccountIdentity):
     model_config = ConfigDict(extra="forbid")
-    password_confirmation: str = Field(min_length=10, max_length=128)
+
+    password_confirmation: str = Field(
+        min_length=10,
+        max_length=128
+    )
 
     @model_validator(mode="after")
     def matching_passwords(self):
@@ -24,42 +29,132 @@ class RegistrationInput(AccountIdentity):
         return self
 
 
-def needs_initial_admin(db):
-    # Legacy system_audit/seed users cannot log in. Disabled real admins still
-    # count, so locking an admin never reopens public admin registration.
-    return db.query(User).filter(User.role == "admin",
-        User.password_hash.startswith("pbkdf2_sha256$")).first() is None
+def needs_initial_admin(db: Session):
+    """
+    Kiểm tra hệ thống đã có tài khoản quản trị viên thật hay chưa.
+
+    Các tài khoản seed/system_audit cũ không được tính là admin đăng nhập.
+    """
+    return (
+        db.query(User)
+        .filter(
+            User.role == "admin",
+            User.password_hash.startswith("pbkdf2_sha256$")
+        )
+        .first()
+        is None
+    )
 
 
 @router.post("/register", status_code=201)
-def register(payload: RegistrationInput, request: Request, db: Session = Depends(get_db)):
+def register(
+    payload: RegistrationInput,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    # Chỉ cho phép yêu cầu đăng ký từ giao diện của ứng dụng
     if request.headers.get("X-Requested-With") != "inventory-app":
-        raise HTTPException(403, "Yêu cầu đăng ký không hợp lệ.")
-    if db.get_bind().dialect.name != "sqlite":
-        raise HTTPException(503, "Đăng ký hiện hỗ trợ cơ sở dữ liệu SQLite.")
-    # Serialize first-admin election and insert in the same transaction.
-    # Two simultaneous submissions must not both become administrators.
-    db.execute(text("BEGIN IMMEDIATE"))
+        raise HTTPException(
+            status_code=403,
+            detail="Yêu cầu đăng ký không hợp lệ."
+        )
+
+    # Hỗ trợ cả SQLite và PostgreSQL
+    dialect = db.get_bind().dialect.name
+
     try:
-        key = hashlib.sha256(('register:' + (request.client.host if request.client else 'unknown')).encode()).hexdigest()
+        # Khóa transaction để tránh trường hợp hai người cùng lúc
+        # đều trở thành admin đầu tiên.
+        if dialect == "sqlite":
+            db.execute(text("BEGIN IMMEDIATE"))
+
+        elif dialect == "postgresql":
+            db.execute(
+                text("SELECT pg_advisory_xact_lock(20260914)")
+            )
+
+        else:
+            raise HTTPException(
+                status_code=503,
+                detail="Cơ sở dữ liệu hiện tại chưa được hỗ trợ."
+            )
+
+        # Tạo khóa giới hạn đăng ký theo IP
+        client_ip = (
+            request.client.host
+            if request.client
+            else "unknown"
+        )
+
+        key = hashlib.sha256(
+            ("register:" + client_ip).encode()
+        ).hexdigest()
+
         now = datetime.utcnow()
+
         throttle = db.get(LoginThrottle, key)
-        if throttle and throttle.expires_at > now and throttle.failures >= 10:
-            raise HTTPException(429, "Đã đạt giới hạn đăng ký. Vui lòng thử lại sau một giờ.")
+
+        # Giới hạn tối đa 10 lần đăng ký / giờ
+        if (
+            throttle
+            and throttle.expires_at > now
+            and throttle.failures >= 10
+        ):
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    "Đã đạt giới hạn đăng ký. "
+                    "Vui lòng thử lại sau một giờ."
+                )
+            )
+
+        # Chưa có bản ghi giới hạn
         if throttle is None:
-            throttle = LoginThrottle(key=key, failures=0, expires_at=now + timedelta(hours=1))
+            throttle = LoginThrottle(
+                key=key,
+                failures=0,
+                expires_at=now + timedelta(hours=1)
+            )
             db.add(throttle)
+
+        # Hết thời gian giới hạn thì reset
         elif throttle.expires_at <= now:
             throttle.failures = 0
             throttle.expires_at = now + timedelta(hours=1)
+
         throttle.failures += 1
+
+        # Kiểm tra đây có phải tài khoản đầu tiên hay không
         first = needs_initial_admin(db)
-        account = AccountCreate(username=payload.username, email=payload.email,
-                                password=payload.password, role="admin" if first else "ke_toan")
-        user = add_account(db, account, is_active=first)
-        return {"username": user.username, "requires_approval": not first,
-                "message": "Đăng ký quản trị viên thành công. Bạn có thể đăng nhập ngay."
-                if first else "Đăng ký thành công. Vui lòng chờ quản trị viên kích hoạt và phân quyền trước khi đăng nhập."}
+
+        account = AccountCreate(
+            username=payload.username,
+            email=payload.email,
+            password=payload.password,
+            role="admin" if first else "ke_toan"
+        )
+
+        # Admin đầu tiên được kích hoạt ngay
+        user = add_account(
+            db,
+            account,
+            is_active=first
+        )
+
+        return {
+            "username": user.username,
+            "requires_approval": not first,
+            "message": (
+                "Đăng ký quản trị viên thành công. "
+                "Bạn có thể đăng nhập ngay."
+                if first
+                else
+                "Đăng ký thành công. "
+                "Vui lòng chờ quản trị viên kích hoạt "
+                "và phân quyền trước khi đăng nhập."
+            )
+        }
+
     except Exception:
         db.rollback()
         raise
