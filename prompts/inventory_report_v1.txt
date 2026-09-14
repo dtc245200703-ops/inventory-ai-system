@@ -1,0 +1,2 @@
+Hãy phân tích dữ liệu tồn kho và viết báo cáo về tình hình kho.
+Cho biết sản phẩm nào cần nhập thêm và có vấn đề gì đáng chú ý.

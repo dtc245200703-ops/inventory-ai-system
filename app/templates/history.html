@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="panel"><div class="panel-header"><div><h3>Lịch sử nhập – xuất</h3><p class="muted">Truy vết giao dịch từ các biến động kho đã ghi nhận.</p></div><button id="reloadHistory" class="btn-secondary">↻ Làm mới</button></div>
+<form id="historyFilters" class="product-filters">
+<label>Từ ngày<input type="date" id="historyFrom"></label><label>Đến ngày<input type="date" id="historyTo"></label>
+<label>Hàng hóa<select id="historyProduct"><option value="">Tất cả hàng hóa</option></select></label>
+<label>Nhà cung cấp<select id="historySupplier"><option value="">Tất cả nhà cung cấp</option></select></label>
+<label>Nhập / Xuất<select id="historyType"><option value="">Tất cả</option><option value="import">Nhập</option><option value="export">Xuất</option></select></label>
+<label>Người thực hiện<select id="historyUser"><option value="">Tất cả người dùng</option></select></label>
+<button class="primary" type="submit">Lọc</button><button id="clearHistory" class="btn-secondary" type="button">Bỏ lọc</button></form>
+<p id="historyCount" class="muted" role="status"></p><div class="table-wrapper"><table class="products-table"><thead><tr><th>Thời gian</th><th>Loại</th><th>Mã phiếu</th><th>Mã hàng</th><th>Sản phẩm</th><th>Số lượng</th><th>Tồn sau</th><th>Nhà cung cấp</th><th>Người thực hiện</th></tr></thead><tbody id="historyRows"><tr><td colspan="9">Đang tải…</td></tr></tbody></table></div></section>
+{% endblock %}
+{% block scripts %}<script src="/static/js/history.js"></script>{% endblock %}

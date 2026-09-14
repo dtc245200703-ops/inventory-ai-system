@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ title|default('Tổng quan kho') }} · Inventory AI</title>
+<link rel="stylesheet" href="/static/css/style.css"><link rel="stylesheet" href="/static/css/workspace.css">
+{% block head %}{% endblock %}
+</head><body data-role="{{ user.role }}" data-page="{{ page }}"><div class="app">
+<aside class="sidebar"><div class="brand"><div class="brand-icon">📦</div><div><h2>Inventory AI</h2><span>Quản lý kho thông minh</span></div></div>
+<nav class="menu" aria-label="Menu chính">
+{% set links = [('dashboard', '/', 'Tổng quan'), ('products', '/workspace/products', 'Hàng hóa'), ('inventory', '/workspace/inventory', 'Tồn kho'), ('receipts', '/workspace/receipts', 'Phiếu nhập'), ('issues', '/workspace/issues', 'Phiếu xuất'), ('history', '/workspace/history', 'Lịch sử nhập – xuất'), ('reports', '/workspace/reports', 'Báo cáo – AI'), ('users', '/workspace/users', 'Tài khoản')] %}
+{% for key, href, label in links %}
+{% if key == 'dashboard' or key in ['receipts', 'issues', 'history'] or (key in ['products', 'inventory'] and user.role in ['admin','thu_kho']) or (key == 'reports' and user.role in ['admin','ke_toan']) or (key == 'users' and user.role == 'admin') %}
+<a class="menu-item {{ 'active' if key == page else '' }}" href="{{ href }}" {% if key == page %}aria-current="page"{% endif %}>{{ label }}</a>
+{% endif %}{% endfor %}
+{% if user.role in ['admin','thu_kho'] %}
+<a class="menu-item {{ 'active' if page == 'categories' else '' }}" href="/workspace/categories">Nhóm hàng</a>
+<a class="menu-item {{ 'active' if page == 'units' else '' }}" href="/workspace/units">Đơn vị tính</a>
+{% endif %}
+<a class="menu-item {{ 'active' if page == 'suppliers' else '' }}" href="/workspace/suppliers">Nhà cung cấp</a>
+</nav></aside>
+<main class="main"><header class="header"><div><h1>{{ title|default('Tổng quan kho') }}</h1><p>Theo dõi hàng hóa và hoạt động nhập xuất.</p></div><div class="user"><div><strong>{{ user.username }}</strong><small>{{ role_label }}</small></div><button id="logout" class="btn-secondary">Đăng xuất</button></div></header>
+<p id="pageMessage" role="status" aria-live="polite"></p>
+{% block content %}{% endblock %}
+</main></div><script src="/static/js/session.js"></script>{% block scripts %}{% endblock %}</body></html>

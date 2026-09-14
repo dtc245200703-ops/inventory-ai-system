@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block content %}
+{% if page == 'reports' %}
+<section class="panel"><h3>Báo cáo và nhận xét AI</h3><p class="muted">Dữ liệu tổng hợp từ kho; AI không tự thay đổi số lượng.</p><div class="toolbar section-gap"><button class="btn-secondary" data-ai="/ai/inventory-report">Báo cáo kho</button><button class="btn-secondary" data-ai="/ai/restock-suggestion">Gợi ý nhập</button><button class="btn-secondary" data-ai="/ai/anomaly-summary">Phân tích bất thường</button></div><div id="aiResult" class="ai-result" role="status">Chọn chức năng để bắt đầu.</div></section>
+{% else %}
+<section class="panel"><div class="panel-header"><h3>{{ title }}</h3><button id="reload" class="btn-secondary">↻ Làm mới</button></div><div class="table-wrapper"><table><thead id="listHead"></thead><tbody id="listBody"><tr><td>Đang tải…</td></tr></tbody></table></div></section>
+{% if user.role in ['admin','thu_kho'] %}
+{% if page == 'products' %}
+<section class="panel section-gap"><h3>Thêm mặt hàng</h3><form id="productForm" class="form-grid"><label>Mã hàng<input name="product_code" required maxlength="50"></label><label>Tên hàng<input name="product_name" required maxlength="200"></label><label>Đơn vị<input name="unit" required maxlength="20" value="Cái"></label><label>Tồn tối thiểu<input name="min_stock_level" type="number" min="0" value="10" required></label><button class="primary" type="submit">Thêm mặt hàng</button></form></section>
+{% elif page == 'inventory' %}
+<section class="panel section-gap"><h3>Cập nhật tồn</h3><p class="muted">Đặt lại số tồn sau kiểm kê. Chức năng hiện chưa ghi lịch sử điều chỉnh; dùng phiếu nhập/xuất cho giao dịch thông thường.</p><form id="inventoryForm" class="form-grid"><label>Sản phẩm<select name="product_id" id="productSelect" required></select></label><label>Số lượng tồn mới<input name="quantity_available" type="number" min="0" required></label><button class="primary" type="submit">Cập nhật tồn</button></form></section>
+{% elif page in ['receipts','issues'] %}
+<section class="panel section-gap"><h3>Lập {{ 'phiếu nhập' if page == 'receipts' else 'phiếu xuất' }}</h3><form id="documentForm">
+{% if page == 'receipts' %}<label>Nhà cung cấp<select name="supplier_id" id="supplierSelect" required></select></label>{% else %}<div class="form-grid"><label>Người nhận<input name="receiver" maxlength="200" required></label><label>Lý do xuất<input name="reason" maxlength="255" required></label></div>{% endif %}
+<div id="documentLines"></div><div class="toolbar"><button type="button" id="addLine" class="btn-secondary">+ Thêm sản phẩm</button><button type="submit" class="primary">Lưu phiếu</button><button type="button" id="cancelDocument" class="btn-secondary">Hủy</button></div></form></section>
+{% if page == 'receipts' %}<details class="panel section-gap"><summary>Thêm nhà cung cấp</summary><form id="supplierForm" class="form-grid"><label>Mã nhà cung cấp<input name="code" required maxlength="50"></label><label>Tên nhà cung cấp<input name="name" required maxlength="200"></label><button class="primary" type="submit">Thêm nhà cung cấp</button></form></details>{% endif %}
+{% endif %}{% endif %}
+{% if page == 'users' and user.role == 'admin' %}
+<section class="panel section-gap"><h3>Thêm tài khoản</h3><p class="muted">Admin có thể sửa họ tên, đổi quyền, khóa/mở khóa và đặt lại mật khẩu tại bảng trên.</p><form id="accountForm" class="form-grid"><label>Tên đăng nhập<input name="username" autocomplete="off" minlength="3" maxlength="50" pattern="[a-zA-Z0-9_.-]+" required></label><label>Họ tên<input name="full_name" maxlength="200" required></label><label>Email (tùy chọn)<input name="email" type="email" maxlength="254"></label><label>Mật khẩu<input name="password" type="password" autocomplete="new-password" minlength="10" maxlength="128" required></label><label>Vai trò<select name="role"><option value="thu_kho">Thủ kho</option><option value="ke_toan">Kế toán</option><option value="admin">Quản trị viên</option></select></label><button class="primary" type="submit">Thêm tài khoản</button></form></section>
+{% endif %}{% endif %}
+{% endblock %}
+{% block scripts %}{% if page == 'reports' %}<script src="/static/js/reports.js"></script>{% else %}<script src="/static/js/workspace.js"></script>{% endif %}{% endblock %}

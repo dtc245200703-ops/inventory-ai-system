@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="stats" aria-label="Thống kê kho">
+{% for id, label, hint, icon in [('total_products','Tổng số mặt hàng','Mặt hàng trong hệ thống','📦'),('total_stock','Tổng số lượng tồn','Tổng số đơn vị hàng hóa','🏬'),('low_stock','Dưới tồn tối thiểu','Tồn nhỏ hơn ngưỡng tối thiểu','⚠️'),('stale_stock','Hàng tồn lâu','Còn tồn, ít nhất 90 ngày không xuất','🕒'),('receipts_this_month','Phiếu nhập tháng này','Phiếu đã xác nhận','📥'),('issues_this_month','Phiếu xuất tháng này','Phiếu đã xác nhận','📤')] %}
+<article class="stat-card"><div class="stat-icon blue">{{ icon }}</div><div><p>{{ label }}</p><h2 id="{{ id }}">—</h2><span>{{ hint }}</span></div></article>
+{% endfor %}</section>
+<div class="toolbar"><label for="period">Biểu đồ và top sản phẩm:</label><select id="period"><option value="day">Theo ngày · tháng này</option><option value="month">Theo tháng · 12 tháng</option></select><button id="refresh" class="btn-secondary">↻ Làm mới</button><span id="updatedAt" class="muted"></span></div>
+<section class="grid section-gap"><article class="panel"><div class="panel-header"><div><h3>Nhập – xuất kho</h3><p>Số lượng hàng, theo giờ Việt Nam (UTC+7).</p></div></div><div class="legend"><span>■ Nhập</span><span>■ Xuất</span></div><div id="movementChart" class="chart" aria-label="Biểu đồ số lượng nhập xuất"></div><details><summary>Xem số liệu biểu đồ</summary><div class="table-wrapper"><table><thead><tr><th>Kỳ</th><th>Nhập</th><th>Xuất</th></tr></thead><tbody id="chartTable"></tbody></table></div></details></article>
+<article class="panel"><div class="panel-header"><h3>Top 5 sản phẩm xuất nhiều</h3></div><p class="muted">Theo khoảng thời gian đang chọn.</p><div id="topProducts"></div></article></section>
+<section class="grid section-gap"><article class="panel"><div class="panel-header"><h3>Hàng sắp hết</h3></div><div id="lowStockList" class="stock-list"></div></article><article class="panel"><div class="panel-header"><h3>Hàng tồn lâu</h3></div><p class="muted">Còn tồn và ≥90 ngày không xuất. Nếu chưa từng xuất, tính từ lịch sử đầu tiên; không phải tuổi tồn theo lô.</p><p id="unknownAge" class="muted"></p><div id="staleStockList" class="stock-list"></div></article></section>
+{% if user.role in ['admin','ke_toan'] %}
+<section class="panel ai-panel section-gap" id="ai"><div class="panel-header"><div><h3>Nhận xét AI</h3><p>AI chỉ phân tích khi bạn yêu cầu.</p></div></div><div class="toolbar"><button class="btn-secondary" data-ai="/ai/inventory-report">Báo cáo kho</button><button class="btn-secondary" data-ai="/ai/restock-suggestion">Gợi ý nhập hàng</button><button class="btn-secondary" data-ai="/ai/anomaly-summary">Phân tích bất thường</button></div><div id="aiResult" class="ai-result" role="status">Chọn chức năng để phân tích dữ liệu hiện tại.</div></section>
+{% endif %}
+{% endblock %}
+{% block scripts %}<script src="/static/js/dashboard.js"></script><script src="/static/js/reports.js"></script>{% endblock %}

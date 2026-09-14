@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="panel"><div class="panel-header"><h3>Danh sách {{ title|lower }}</h3>{% if user.role in ['admin','thu_kho'] %}<button id="catalogAdd" class="primary">+ Thêm {{ title|lower }}</button>{% endif %}</div>
+<form id="catalogSearch" class="product-filters"><label>Tìm kiếm<input type="search" id="searchText" maxlength="200" placeholder="{{ 'Mã, tên, điện thoại, email, địa chỉ…' if page == 'suppliers' else 'Nhập tên…' }}"></label><button type="submit" class="btn-secondary">Tìm kiếm</button><button id="catalogReset" type="button" class="btn-secondary">Bỏ lọc / Làm mới</button></form>
+<p id="catalogCount" class="muted" role="status"></p><div class="table-wrapper"><table><thead id="catalogHead"></thead><tbody id="catalogBody"></tbody></table></div>
+{% if page == 'units' %}<p class="muted section-gap">Ví dụ: Cái, Hộp, Kg, Bộ, Thùng. Đổi tên đơn vị sẽ cập nhật tên trên hàng hóa đang dùng, không thay đổi số lượng và không quy đổi đơn vị.</p>{% elif page == 'categories' %}<p class="muted section-gap">Ví dụ: Điện tử, Văn phòng phẩm, Thực phẩm, Phụ kiện. Nhóm đang có hàng hóa không thể xóa.</p>{% endif %}</section>
+{% if user.role in ['admin','thu_kho'] %}
+<dialog id="catalogDialog" class="product-dialog" aria-labelledby="catalogTitle"><div class="panel-header"><h2 id="catalogTitle"></h2><button type="button" class="btn-secondary" data-close="catalogDialog" aria-label="Đóng">✕</button></div>
+<form id="catalogForm" class="form-grid">
+{% if page == 'suppliers' %}
+<label>Mã nhà cung cấp<input name="code" maxlength="50" required></label><label>Tên nhà cung cấp<input name="name" maxlength="200" required></label><label>Điện thoại<input name="phone" type="tel" maxlength="20"></label><label>Email<input name="email" type="email" maxlength="100"></label><label class="wide">Địa chỉ<input name="address" maxlength="255"></label>
+{% else %}<label class="wide">Tên {{ title|lower }}<input name="{{ 'unit_name' if page == 'units' else 'category_name' }}" maxlength="{{ 20 if page == 'units' else 100 }}" required></label>{% endif %}
+<p id="catalogError" class="error-message wide" role="alert"></p><div class="toolbar wide"><button class="primary" type="submit">Lưu</button><button class="btn-secondary" type="button" data-close="catalogDialog">Hủy</button></div></form></dialog>
+<dialog id="catalogDelete" class="product-dialog small-dialog" aria-labelledby="catalogDeleteTitle"><h2 id="catalogDeleteTitle">Xác nhận xóa</h2><p id="catalogDeleteText" class="section-gap"></p><p id="catalogDeleteError" class="error-message section-gap" role="alert"></p><div class="toolbar section-gap"><button id="catalogConfirmDelete" class="danger-button">Xóa</button><button class="btn-secondary" data-close="catalogDelete">Hủy</button></div></dialog>
+{% endif %}
+{% if page == 'suppliers' %}<dialog id="historyDialog" class="product-dialog" aria-labelledby="historyTitle"><div class="panel-header"><h2 id="historyTitle">Lịch sử nhập hàng</h2><button class="btn-secondary" data-close="historyDialog" aria-label="Đóng lịch sử">✕</button></div><p id="historySummary" class="muted"></p><div id="historyContent"></div></dialog>{% endif %}
+{% endblock %}
+{% block scripts %}<script src="/static/js/catalog.js"></script>{% endblock %}
