@@ -37,6 +37,7 @@ def describe(product, used):
             "product_name": product.product_name, "category_id": product.category_id,
             "category_name": product.category.category_name if product.category else None,
             "unit": product.unit, "min_stock_level": product.min_stock_level or 0,
+            "purchase_price": product.purchase_price, "sale_price": product.sale_price,
             "quantity_available": quantity, "stock_status": stock_status,
             "last_updated": product.inventory.last_updated if product.inventory else None,
             "can_delete": reason is None, "deletion_reason": reason}
@@ -109,6 +110,8 @@ def update_product(product_id: int, payload: schemas.ProductCreate, db: Session 
     validate_product(db, payload, product_id)
     payload.unit = resolve_unit(db, payload.unit)
     for key, value in payload.model_dump().items():
+        if key in {'purchase_price', 'sale_price'} and key not in payload.model_fields_set:
+            continue
         setattr(product, key, value)
     commit(db)
     return describe(find_product(db, product_id), used_product_ids(db, product_id))

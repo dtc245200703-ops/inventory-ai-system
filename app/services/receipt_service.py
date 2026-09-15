@@ -61,7 +61,7 @@ def create_receipt(
                     receipt_id=receipt.id,
                     product_id=product.product_id,
                     quantity=item["quantity"],
-                    unit_price=item.get("unit_price"),
+                    unit_price=item.get("unit_price") if item.get("unit_price") is not None else product.purchase_price,
                 )
             )
 

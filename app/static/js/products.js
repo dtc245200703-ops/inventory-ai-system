@@ -3,6 +3,7 @@ const stockClasses = {in_stock: 'status-good', low_stock: 'status-warning', out_
 let editingId = null, detailProduct = null, deletingProduct = null, requestVersion = 0, debounceTimer;
 const byId = id => document.getElementById(id);
 const numberText = value => Number(value).toLocaleString('vi-VN');
+const priceText = value => value == null ? 'Chưa có giá' : `${numberText(value)} ₫`;
 
 function addOption(select, value, label) {
     const item = node('option', label); item.value = value; select.append(item);
@@ -45,11 +46,12 @@ async function loadProducts() {
         byId('productCount').textContent = `${numberText(products.length)} mặt hàng phù hợp`;
         if (!products.length) {
             const row = node('tr'), cell = node('td', 'Không có hàng hóa phù hợp. Thử bỏ bộ lọc hoặc thêm hàng hóa mới.', 'empty');
-            cell.colSpan = 8; row.append(cell); body.append(row);
+            cell.colSpan = 10; row.append(cell); body.append(row);
         }
         for (const product of products) {
             const row = node('tr'); row.dataset.id = product.product_id;
             const values = [product.product_code, product.product_name, product.category_name || 'Chưa phân nhóm', product.unit,
+                priceText(product.purchase_price), priceText(product.sale_price),
                 numberText(product.quantity_available), numberText(product.min_stock_level)];
             values.forEach(value => row.append(node('td', value)));
             const status = node('td'); status.append(node('span', stockLabels[product.stock_status], `status ${stockClasses[product.stock_status]}`));
@@ -75,7 +77,7 @@ async function openEditor(id = null) {
         const form = byId('productEditorForm'); form.reset();
         byId('editorError').textContent = '';
         byId('editorTitle').textContent = product ? 'Sửa hàng hóa' : 'Thêm hàng hóa';
-        for (const field of ['product_code', 'product_name', 'unit', 'min_stock_level', 'category_id']) {
+        for (const field of ['product_code', 'product_name', 'unit', 'min_stock_level', 'category_id', 'purchase_price', 'sale_price']) {
             if (product) form.elements[field].value = product[field] ?? '';
         }
         byId('stockHint').textContent = product ? `Tồn hiện tại: ${numberText(product.quantity_available)} ${product.unit}. Sửa thông tin không thay đổi số lượng tồn.` : 'Hàng mới có tồn bằng 0. Lập phiếu nhập để tăng tồn.';
@@ -89,6 +91,7 @@ async function showDetails(id) {
         const timestamp = p.last_updated ? new Date(p.last_updated.endsWith('Z') ? p.last_updated : p.last_updated + 'Z').toLocaleString('vi-VN', {timeZone: 'Asia/Ho_Chi_Minh'}) : 'Chưa có';
         const fields = [['Mã hàng', p.product_code], ['Tên hàng', p.product_name], ['Nhóm hàng', p.category_name || 'Chưa phân nhóm'], ['Đơn vị tính', p.unit], ['Số lượng tồn', numberText(p.quantity_available)], ['Tồn tối thiểu', numberText(p.min_stock_level)], ['Trạng thái', stockLabels[p.stock_status]], ['Cập nhật tồn (giờ Việt Nam)', timestamp]];
         const content = byId('detailsContent'); content.replaceChildren();
+        fields.push(['Giá nhập mặc định', priceText(p.purchase_price)], ['Giá xuất mặc định', priceText(p.sale_price)]);
         fields.forEach(([label, value]) => content.append(node('dt', label), node('dd', value)));
         byId('deletionNote').textContent = p.deletion_reason || 'Hàng hóa chưa sử dụng, có thể xóa.';
         byId('productDetails').showModal();
@@ -107,6 +110,8 @@ byId('productEditorForm').addEventListener('submit', async event => {
     const values = Object.fromEntries(new FormData(form));
     values.category_id = values.category_id ? Number(values.category_id) : null;
     values.min_stock_level = Number(values.min_stock_level);
+    values.purchase_price = values.purchase_price || null;
+    values.sale_price = values.sale_price || null;
     try {
         await api(editingId === null ? '/products/' : `/products/${editingId}`, {method: editingId === null ? 'POST' : 'PUT', body: JSON.stringify(values)});
         byId('productEditor').close(); message(editingId === null ? 'Đã thêm hàng hóa. Tồn ban đầu bằng 0.' : 'Đã cập nhật thông tin hàng hóa.');

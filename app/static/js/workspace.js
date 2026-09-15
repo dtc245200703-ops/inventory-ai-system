@@ -1,6 +1,31 @@
 const page = document.body.dataset.page;
 const roleLabels = {admin: 'Quản trị viên', thu_kho: 'Thủ kho', ke_toan: 'Kế toán'};
 let products = [], suppliers = [];
+const moneyText = value => value == null ? 'Chưa có giá' : amountText(minorUnits(String(value)));
+// Integer minor units keep the preview exact even for large prices.
+function minorUnits(value) {
+    if (!/^\d+(\.\d{1,2})?$/.test(value)) return null;
+    const [whole, fraction = ''] = value.split('.');
+    return BigInt(whole) * 100n + BigInt(fraction.padEnd(2, '0'));
+}
+function amountText(value) {
+    return `${(value / 100n).toLocaleString('vi-VN')},${String(value % 100n).padStart(2, '0')} ₫`;
+}
+function updateDocumentTotal() {
+    let total = 0n, known = true;
+    document.querySelectorAll('.doc-line').forEach(row => {
+        const product = products.find(item => item.product_id === Number(row.querySelector('select').value));
+        const fallback = product?.[page === 'receipts' ? 'purchase_price' : 'sale_price'];
+        const price = minorUnits(row.querySelector('.line-price').value || String(fallback ?? ''));
+        const quantity = row.querySelector('.line-quantity').value;
+        const valid = price !== null && /^\d+$/.test(quantity) && BigInt(quantity) > 0n;
+        const amount = valid ? price * BigInt(quantity) : null;
+        row.querySelector('.line-total').textContent = amount === null ? 'Chưa có giá / số lượng' : amountText(amount);
+        if (amount === null) known = false; else total += amount;
+    });
+    const output = document.getElementById('documentTotal');
+    if (output) output.textContent = known ? `Tổng tiền: ${amountText(total)}` : 'Tổng tiền: chưa đủ giá / số lượng';
+}
 function option(value, text) { const el = node('option', text); el.value = value; return el; }
 function fillProducts(select) {
     select.replaceChildren(option('', 'Chọn sản phẩm'));
@@ -12,14 +37,27 @@ function addLine() {
     const select = node('select'); select.required = true; fillProducts(select); productLabel.append(select);
     const qtyLabel = node('label', 'Số lượng');
     const qty = node('input'); qty.type = 'number'; qty.min = '1'; qty.step = '1'; qty.value = '1'; qty.required = true; qtyLabel.append(qty);
-    if (page === 'issues') select.addEventListener('change', () => {
+    qty.className = 'line-quantity';
+    const priceLabel = node('label', page === 'receipts' ? 'Giá nhập (VNĐ)' : 'Giá xuất (VNĐ)');
+    const price = node('input'); price.type = 'number'; price.min = '0'; price.max = '999999999999.99'; price.step = '0.01'; price.className = 'line-price'; price.placeholder = 'Chưa có giá'; priceLabel.append(price);
+    const totalLabel = node('label', 'Thành tiền'); totalLabel.append(node('output', 'Chưa có giá', 'line-total'));
+    function validateStock() {
         const product = products.find(item => item.product_id === Number(select.value));
-        qty.max = product ? String(product.quantity_available) : '';
-        qty.setCustomValidity(product && Number(qty.value) > product.quantity_available ? `Chỉ còn ${product.quantity_available} trong kho.` : '');
+        if (page === 'issues') {
+            qty.max = product ? String(product.quantity_available) : '';
+            qty.setCustomValidity(product && Number(qty.value) > product.quantity_available ? `Chỉ còn ${product.quantity_available} trong kho.` : '');
+        }
+    }
+    select.addEventListener('change', () => {
+        const product = products.find(item => item.product_id === Number(select.value));
+        price.value = product?.[page === 'receipts' ? 'purchase_price' : 'sale_price'] ?? '';
+        validateStock(); updateDocumentTotal();
     });
-    qty.addEventListener('input', () => select.dispatchEvent(new Event('change')));
-    const remove = node('button', 'Xóa dòng', 'btn-secondary'); remove.type = 'button'; remove.addEventListener('click', () => row.remove());
-    row.append(productLabel, qtyLabel, remove); document.getElementById('documentLines').append(row);
+    qty.addEventListener('input', () => { validateStock(); updateDocumentTotal(); });
+    price.addEventListener('input', updateDocumentTotal);
+    const remove = node('button', 'Xóa dòng', 'btn-secondary'); remove.type = 'button'; remove.addEventListener('click', () => { row.remove(); updateDocumentTotal(); });
+    row.append(productLabel, qtyLabel, priceLabel, totalLabel, remove); document.getElementById('documentLines').append(row);
+    updateDocumentTotal();
 }
 function table(headers, rows) {
     const head = document.getElementById('listHead'), body = document.getElementById('listBody');
@@ -56,12 +94,12 @@ async function loadList() {
             if (page === 'receipts' || page === 'issues') {
                 const docs = await api(`/${page}/`);
                 const headers = ['Số phiếu', page === 'issues' ? 'Ngày xuất' : 'Ngày lập (giờ Việt Nam)', 'Người lập',
-                    ...(page === 'issues' ? ['Người nhận', 'Lý do xuất'] : []), 'Trạng thái', 'Chi tiết'];
+                    ...(page === 'issues' ? ['Người nhận', 'Lý do xuất'] : []), 'Trạng thái', 'Tổng tiền', 'Chi tiết'];
                 table(headers, docs.map(d => {
                     const details = node('details'); details.append(node('summary', `${d.items.length} dòng hàng`)); const list = node('ul');
-                    d.items.forEach(i => list.append(node('li', `${names.get(i.product_id) || i.product_id}: ${i.quantity}`))); details.append(list);
+                    d.items.forEach(i => list.append(node('li', `${names.get(i.product_id) || i.product_id}: ${i.quantity} × ${moneyText(i.unit_price)} = ${moneyText(i.line_total)}`))); details.append(list);
                     const stamp = d.receipt_date || d.issue_date;
-                    return [d.receipt_no || d.issue_no, stamp ? new Date(stamp.endsWith('Z') ? stamp : stamp + 'Z').toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'}) : '—', d.created_by, ...(page === 'issues' ? [d.receiver, d.reason] : []), d.status, details];
+                    return [d.receipt_no || d.issue_no, stamp ? new Date(stamp.endsWith('Z') ? stamp : stamp + 'Z').toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'}) : '—', d.created_by, ...(page === 'issues' ? [d.receiver, d.reason] : []), d.status, d.total_amount == null ? 'Chưa đủ giá' : moneyText(d.total_amount), details];
                 }));
                 if (document.getElementById('supplierSelect')) {
                     suppliers = await api('/suppliers/'); const select = document.getElementById('supplierSelect');
@@ -91,10 +129,13 @@ bindForm('inventoryForm', v => `/inventory/${v.product_id}`, v => ({quantity_ava
 bindForm('supplierForm', '/suppliers/', v => v);
 bindForm('accountForm', '/users/', v => ({...v, email: v.email || null}));
 bindForm('documentForm', `/${page}/`, v => {
-    const totals = new Map();
-    document.querySelectorAll('.doc-line').forEach(row => { const id = Number(row.querySelector('select').value); totals.set(id, (totals.get(id) || 0) + Number(row.querySelector('input').value)); });
-    if (!totals.size) throw new Error('Thêm ít nhất một dòng hàng.');
-    const result = {items: [...totals].map(([product_id, quantity]) => ({product_id, quantity}))};
+    const items = [...document.querySelectorAll('.doc-line')].map(row => ({
+        product_id: Number(row.querySelector('select').value),
+        quantity: Number(row.querySelector('.line-quantity').value),
+        unit_price: row.querySelector('.line-price').value || null,
+    }));
+    if (!items.length) throw new Error('Thêm ít nhất một dòng hàng.');
+    const result = {items};
     if (page === 'receipts') result.supplier_id = Number(v.supplier_id); else { result.receiver = v.receiver; result.reason = v.reason; }
     return result;
 });

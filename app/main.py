@@ -11,6 +11,7 @@ from app.auth import optional_user, current_user, ROLE_LABELS
 from app.routers import auth, users, dashboard as dashboard_api, suppliers, registration, categories, units, reports, history
 from app.database import SessionLocal
 from app.services.catalog_service import import_existing_units
+from app.services.price_migration import migrate_prices
 from app.database import get_db
 
 from app.routers import (
@@ -27,6 +28,7 @@ from app.routers import (
 # =========================================================
 
 models.Base.metadata.create_all(bind=engine)
+migrate_prices(engine)
 # create_all does not add columns to an existing SQLite database. Keep demo data
 # compatible while introducing the recipient field for issue vouchers.
 if "receiver" not in {column["name"] for column in inspect(engine).get_columns("issues")}:

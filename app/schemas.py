@@ -1,8 +1,29 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Annotated
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
+
+Money = Annotated[Decimal, Field(ge=0, max_digits=14, decimal_places=2, allow_inf_nan=False)]
+
+
+class PricedItemResponse(BaseModel):
+    quantity: int
+    unit_price: Optional[Decimal] = None
+
+    @computed_field
+    @property
+    def line_total(self) -> Optional[Decimal]:
+        return None if self.unit_price is None else self.unit_price * self.quantity
+
+
+class PricedDocumentResponse(BaseModel):
+    @computed_field
+    @property
+    def total_amount(self) -> Optional[Decimal]:
+        if any(item.line_total is None for item in self.items):
+            return None
+        return sum((item.line_total for item in self.items), Decimal('0'))
 
 
 # =========================================================
@@ -38,6 +59,8 @@ class ProductCreate(BaseModel):
     category_id: Optional[int] = None
     unit: str = Field(min_length=1, max_length=20)
     min_stock_level: int = Field(default=10, ge=0)
+    purchase_price: Optional[Money] = None
+    sale_price: Optional[Money] = None
 
 
 class ProductUpdate(BaseModel):
@@ -55,6 +78,8 @@ class Product(ORMBase):
     category_id: Optional[int] = None
     unit: str
     min_stock_level: int
+    purchase_price: Optional[Decimal] = None
+    sale_price: Optional[Decimal] = None
 
 
 class ProductDetail(Product):
@@ -129,10 +154,10 @@ class SupplierResponse(ORMBase):
 class ReceiptItemCreate(BaseModel):
     product_id: int
     quantity: int
-    unit_price: Optional[Decimal] = None
+    unit_price: Optional[Money] = None
 
 
-class ReceiptItemResponse(ORMBase):
+class ReceiptItemResponse(ORMBase, PricedItemResponse):
     id: int
     product_id: int
     quantity: int
@@ -149,7 +174,7 @@ class ReceiptCreate(BaseModel):
     items: List[ReceiptItemCreate]
 
 
-class ReceiptResponse(ORMBase):
+class ReceiptResponse(ORMBase, PricedDocumentResponse):
     id: int
     receipt_no: str
     supplier_id: int
@@ -166,9 +191,10 @@ class ReceiptResponse(ORMBase):
 class IssueItemCreate(BaseModel):
     product_id: int
     quantity: int
+    unit_price: Optional[Money] = None
 
 
-class IssueItemResponse(ORMBase):
+class IssueItemResponse(ORMBase, PricedItemResponse):
     id: int
     product_id: int
     quantity: int
@@ -186,7 +212,7 @@ class IssueCreate(BaseModel):
     items: List[IssueItemCreate]
 
 
-class IssueResponse(ORMBase):
+class IssueResponse(ORMBase, PricedDocumentResponse):
     id: int
     issue_no: str
     issue_date: Optional[datetime] = None

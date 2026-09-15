@@ -7,9 +7,10 @@ from app import models
 from app.exceptions import InsufficientStockError, InvalidQuantityError, ProductNotFoundError
 
 
-class IssueItemInput(TypedDict):
+class IssueItemInput(TypedDict, total=False):
     product_id: int
     quantity: int
+    unit_price: Optional[float]
 
 
 def _generate_issue_no() -> str:
@@ -44,8 +45,6 @@ def create_issue(
     for item in items:
         product_id = item["product_id"]
         totals[product_id] = totals.get(product_id, 0) + item["quantity"]
-    items = [{"product_id": product_id, "quantity": quantity}
-             for product_id, quantity in sorted(totals.items())]
 
     try:
         # Bước 1: kiểm tra đủ tồn cho TẤT CẢ dòng hàng trước khi ghi bất kỳ thay đổi nào.
@@ -54,7 +53,8 @@ def create_issue(
         # SQLite (dùng cho demo/test) không hỗ trợ khóa dòng thật sự - with_for_update()
         # sẽ bị bỏ qua, chấp nhận được cho môi trường single-writer của demo này.
         inventories = {}
-        for item in items:
+        prices = {}
+        for item in [{"product_id": pid, "quantity": qty} for pid, qty in sorted(totals.items())]:
             product = db.get(models.Product, item["product_id"])
             if product is None:
                 raise ProductNotFoundError(f"Không tìm thấy hàng hóa id={item['product_id']}.")
@@ -76,6 +76,7 @@ def create_issue(
                     available=inventory.quantity_available,
                 )
             inventories[product.product_id] = inventory
+            prices[product.product_id] = product.sale_price
 
         # Bước 2: mọi dòng đều đủ tồn -> tiến hành ghi phiếu và trừ kho.
         issue = models.Issue(
@@ -95,6 +96,7 @@ def create_issue(
                     issue_id=issue.id,
                     product_id=item["product_id"],
                     quantity=item["quantity"],
+                    unit_price=item.get("unit_price") if item.get("unit_price") is not None else prices[item["product_id"]],
                 )
             )
 

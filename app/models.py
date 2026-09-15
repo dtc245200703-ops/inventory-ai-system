@@ -28,6 +28,8 @@ class Product(Base):
     category_id = Column(Integer, ForeignKey("categories.category_id"))
     unit = Column(String(20), nullable=False)
     min_stock_level = Column(Integer, default=10)
+    purchase_price = Column(Numeric(14, 2), nullable=True)
+    sale_price = Column(Numeric(14, 2), nullable=True)
 
     category = relationship("Category", back_populates="products")
     inventory = relationship("Inventory", back_populates="product", uselist=False, cascade="all, delete-orphan")
@@ -162,6 +164,7 @@ class IssueItem(Base):
     issue_id = Column(Integer, ForeignKey("issues.id"), nullable=False)
     product_id = Column(Integer, ForeignKey("products.product_id"), nullable=False)
     quantity = Column(Integer, nullable=False)
+    unit_price = Column(Numeric(14, 2), nullable=True)
 
     __table_args__ = (
         CheckConstraint("quantity > 0", name="ck_issue_items_qty_positive"),
