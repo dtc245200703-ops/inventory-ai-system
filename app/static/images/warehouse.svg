@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <defs>
+    <linearGradient id="wall" x2="0" y2="1"><stop stop-color="#173e50"/><stop offset="1" stop-color="#37616a"/></linearGradient>
+    <linearGradient id="floor" x2="0" y2="1"><stop stop-color="#54777a"/><stop offset="1" stop-color="#183b49"/></linearGradient>
+    <linearGradient id="box" x2="1" y2="1"><stop stop-color="#dfba83"/><stop offset="1" stop-color="#ad7f50"/></linearGradient>
+    <g id="parcel">
+      <rect width="102" height="76" rx="3" fill="url(#box)"/>
+      <path d="M0 12h102M51 0v27" stroke="#f0d6a9" stroke-width="9"/>
+      <rect x="12" y="40" width="28" height="19" rx="2" fill="#eee5d1"/>
+      <path d="M17 45v10m4-10v10m3-10v10m5-10v10m4-10v10" stroke="#6d756e" stroke-width="2"/>
+    </g>
+    <g id="rack">
+      <rect width="420" height="570" rx="4" fill="#102e3c" fill-opacity=".55"/>
+      <g fill="#d38a4f"><rect y="165" width="420" height="13"/><rect y="345" width="420" height="13"/><rect y="525" width="420" height="15"/></g>
+      <g fill="#74989d"><rect width="12" height="590"/><rect x="204" width="12" height="590"/><rect x="408" width="12" height="590"/></g>
+      <g><use href="#parcel" x="24" y="89"/><use href="#parcel" x="128" y="89"/><use href="#parcel" x="288" y="89"/><use href="#parcel" x="24" y="269"/><use href="#parcel" x="260" y="269"/><use href="#parcel" x="260" y="191"/><use href="#parcel" x="24" y="449"/><use href="#parcel" x="128" y="449"/><use href="#parcel" x="280" y="449"/></g>
+    </g>
+  </defs>
+  <path fill="url(#wall)" d="M0 0h1600v1000H0z"/>
+  <g stroke="#91b5b6" stroke-opacity=".15" fill="none" stroke-width="3"><path d="M0 160h1600M0 300h1600M150 0v740M480 0v740M800 0v740M1120 0v740M1450 0v740"/><path d="M0 0l800 270L1600 0M0 70l800 200 800-130"/></g>
+  <path d="M0 740h1600v260H0z" fill="url(#floor)"/>
+  <g stroke="#a2b8af" stroke-opacity=".17" fill="none"><path d="M800 740L0 1000m800-260L400 1000m400-260v260m0-260l400 260M800 740l800 260M0 830h1600M0 940h1600"/></g>
+  <g fill="#d8ede2" opacity=".7"><rect x="180" y="118" width="250" height="7" rx="3"/><rect x="675" y="118" width="250" height="7" rx="3"/><rect x="1170" y="118" width="250" height="7" rx="3"/></g>
+  <use href="#rack" x="40" y="190"/><use href="#rack" x="1140" y="190"/>
+  <g opacity=".45" transform="translate(555 330) scale(.7)"><use href="#rack"/></g>
+  <path d="M500 1000l170-260m433 260L933 740" stroke="#d5b971" stroke-width="7" opacity=".65"/>
+  <g transform="translate(1180 790)"><ellipse cx="100" cy="80" rx="170" ry="28" fill="#0d2937" opacity=".3"/><path d="M-15 60h250v16H-15zM0 76v12m65-12v12m80-12v12m75-12v12" stroke="#a88862" stroke-width="10"/><use href="#parcel"/><use href="#parcel" x="105"/><use href="#parcel" x="53" y="-78"/></g>
+</svg>

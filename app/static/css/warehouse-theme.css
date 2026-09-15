@@ -1,0 +1,58 @@
+/* Local warehouse illustration shared by authentication and workspace pages. */
+body.login-page {
+    min-height: 100vh;
+    min-height: 100svh;
+    background: linear-gradient(110deg, #092b4066, #092b4026),
+        url('/static/images/warehouse.svg') center / cover no-repeat #173e50;
+}
+
+.login-page .login-card {
+    background: #fffffff5;
+    border: 1px solid #ffffffb3;
+    border-top: 4px solid #14b8a6;
+    box-shadow: 0 24px 80px #061c4966;
+    padding: 30px;
+}
+
+.login-page .brand-icon {
+    background: linear-gradient(135deg, #14b8a6, #0e7490);
+    box-shadow: 0 8px 24px #0f766e33;
+}
+
+.login-page .primary { background: #0f766e; }
+.login-page .primary:hover { background: #115e59; }
+.login-page a { color: #0f766e; }
+
+body[data-page] {
+    background: #dfeae8;
+}
+
+body[data-page] .main {
+    background: linear-gradient(#edf4f0db, #edf4f0e8),
+        url('/static/images/warehouse.svg') center top / cover no-repeat;
+    background-attachment: fixed;
+}
+
+body[data-page] .sidebar {
+    background: linear-gradient(#102b3aeb, #102b3af5),
+        url('/static/images/warehouse.svg') left bottom / auto 100% no-repeat;
+}
+
+body[data-page] .header {
+    background: linear-gradient(100deg, #103a46f5, #103a4680),
+        url('/static/images/warehouse.svg') center 48% / cover;
+    color: #fff;
+    border-color: #38606a;
+    box-shadow: 0 8px 24px #153b491a;
+}
+
+body[data-page] .header::after { display: none; }
+body[data-page] .header p { color: #d3e6e6; }
+body[data-page] .user { background: #f6f9fc; color: #142f48; }
+body[data-page] .panel,
+body[data-page] .stat-card { background-color: #fffffffa; }
+
+@media (max-width: 700px) {
+    .login-page .login-card { padding: 24px; }
+    body[data-page] .main { background-attachment: scroll; }
+}
