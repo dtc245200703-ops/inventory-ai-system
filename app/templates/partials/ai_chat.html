@@ -1,15 +1,23 @@
 <div class="ai-chat">
-    <h3>Chat với AI</h3>
-    <p class="muted">Hỏi về tồn kho, nhập hàng hoặc cách quản lý kho. AI nhớ 5 lượt hỏi đáp gần nhất khi bạn ở trang này.</p>
-    <div id="aiChatMessages" class="ai-chat-messages" role="log" aria-label="Hội thoại với AI" aria-live="polite"></div>
-    <form id="aiChatForm">
-        <label for="aiChatInput">Câu hỏi của bạn</label>
-        <textarea id="aiChatInput" rows="3" maxlength="2000" required placeholder="Ví dụ: Mặt hàng nào cần nhập thêm và nên nhập bao nhiêu?"></textarea>
-        <div class="toolbar">
-            <button id="aiChatSend" type="submit" class="btn-primary">Gửi câu hỏi</button>
-            <button id="aiChatClear" type="button" class="btn-secondary">Cuộc trò chuyện mới</button>
-            <span class="muted">Enter để gửi · Shift + Enter để xuống dòng</span>
-        </div>
-        <p id="aiChatStatus" role="status"></p>
-    </form>
+  <header class="ai-chat-header">
+    <div class="ai-chat-identity"><span class="ai-chat-avatar" aria-hidden="true">✦</span><div><h3>Trợ lý kho AI</h3><p>Tồn kho · Đối tác · Nhập xuất</p></div></div>
+    <button id="aiChatClear" type="button" class="ai-chat-new">＋ Hội thoại mới</button>
+  </header>
+  <div id="aiChatMessages" class="ai-chat-messages" role="log" aria-label="Hội thoại với AI" aria-live="polite">
+    <div id="aiChatWelcome" class="ai-chat-welcome">
+      <span class="ai-chat-spark" aria-hidden="true">✦</span><h4>Hôm nay bạn muốn biết điều gì?</h4>
+      <p>Tra cứu hàng hóa, xem đối tác đã nhận gì<br>hoặc tìm mặt hàng cần nhập thêm.</p>
+      <div class="ai-chat-suggestions">
+        <button type="button" data-chat-question="Mặt hàng nào cần nhập thêm? Gợi ý số lượng và lý do.">↗ Hàng nào cần nhập thêm?</button>
+        <button type="button" data-chat-question="Trong 30 ngày qua, từng bên nhận đã lấy những mặt hàng gì từ kho?">↗ Đối tác đã nhận hàng gì?</button>
+        <button type="button" data-chat-question="Kho đã nhập những mặt hàng gì từ từng nhà cung cấp?">↗ Hàng theo nhà cung cấp</button>
+      </div>
+    </div>
+  </div>
+  <form id="aiChatForm" class="ai-chat-composer">
+    <label class="ai-chat-label" for="aiChatInput">Câu hỏi của bạn</label>
+    <div class="ai-chat-input-wrap"><textarea id="aiChatInput" rows="2" maxlength="2000" required placeholder="Hỏi về hàng hóa hoặc tên đối tác trong kho…"></textarea><button id="aiChatSend" type="submit" aria-label="Gửi câu hỏi">↑</button></div>
+    <div class="ai-chat-footer"><span>Enter để gửi · Shift + Enter xuống dòng</span><span>Dựa trên dữ liệu kho của bạn</span></div>
+    <p id="aiChatStatus" role="status"></p>
+  </form>
 </div>

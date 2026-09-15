@@ -2,7 +2,7 @@ from calendar import monthrange
 from datetime import date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func
+from sqlalchemy import func, case
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -26,7 +26,7 @@ router = APIRouter(
 
 @router.post("/chat", response_model=schemas.AIResultResponse)
 def ai_chat(payload: schemas.AIChatRequest, db: Session = Depends(get_db)):
-    data = build_inventory_ai_data(db)
+    data = build_chat_ai_data(db)
     try:
         result = generate_chat_reply(
             data, payload.message, [item.model_dump() for item in payload.history]
@@ -41,6 +41,42 @@ def ai_chat(payload: schemas.AIChatRequest, db: Session = Depends(get_db)):
 # =========================================================
 # TỔNG HỢP DỮ LIỆU KHO TRƯỚC KHI GỬI GEMINI
 # =========================================================
+
+def build_chat_ai_data(db: Session):
+    """Include confirmed partner transactions, without prices or contact details."""
+    since = datetime.utcnow() - timedelta(days=30)
+    suppliers = db.query(models.Supplier).order_by(models.Supplier.supplier_id).all()
+    incoming = db.query(
+        models.Receipt.supplier_id, models.ReceiptItem.product_id,
+        func.sum(models.ReceiptItem.quantity),
+        func.sum(case((models.Receipt.receipt_date >= since, models.ReceiptItem.quantity), else_=0)),
+        func.max(models.Receipt.receipt_date),
+    ).join(models.ReceiptItem, models.ReceiptItem.receipt_id == models.Receipt.id).filter(
+        models.Receipt.status == 'confirmed'
+    ).group_by(models.Receipt.supplier_id, models.ReceiptItem.product_id).all()
+    outgoing = db.query(
+        models.Issue.receiver, models.IssueItem.product_id,
+        func.sum(models.IssueItem.quantity),
+        func.sum(case((models.Issue.issue_date >= since, models.IssueItem.quantity), else_=0)),
+        func.max(models.Issue.issue_date),
+    ).join(models.IssueItem, models.IssueItem.issue_id == models.Issue.id).filter(
+        models.Issue.status == 'confirmed'
+    ).group_by(models.Issue.receiver, models.IssueItem.product_id).all()
+    return {
+        'inventory': build_inventory_ai_data(db),
+        'suppliers': [{'supplier_id': s.supplier_id, 'code': s.code, 'name': s.name} for s in suppliers],
+        'received_from_suppliers': [
+            {'supplier_id': supplier, 'product_id': product, 'total_quantity': total,
+             'quantity_last_30_days': recent, 'last_received_at': last}
+            for supplier, product, total, recent, last in incoming],
+        'issued_to_receivers': [
+            {'receiver': receiver or None, 'product_id': product, 'total_quantity': total,
+             'quantity_last_30_days': recent, 'last_issued_at': last}
+            for receiver, product, total, recent, last in outgoing],
+        'scope': 'Tổng hợp toàn bộ phiếu đã xác nhận; số lượng 30 ngày tính theo thời gian UTC.',
+        'limitations': 'Chưa có trường thương hiệu sản phẩm hoặc đơn đặt hàng/nhu cầu tương lai. '
+                        'Bên nhận trống nghĩa là phiếu chưa ghi bên nhận, không phải không có giao dịch.',
+    }
 
 def build_inventory_ai_data(db: Session, start=None, end=None):
 

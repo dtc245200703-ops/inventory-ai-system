@@ -67,8 +67,8 @@ def test_ai_chat_context_validation_and_errors(context, monkeypatch):
     assert response.json()['result'] == 'Còn 10 cái.'
     data, question, previous = seen[0]
     assert question == 'Có cần nhập thêm không?' and previous == history
-    assert data[0]['quantity_available'] == 10
-    assert 'unit_price' not in data[0]
+    assert data['inventory'][0]['quantity_available'] == 10
+    assert 'unit_price' not in data['inventory'][0]
     assert client.post('/ai/chat', json={'message': 'Hello'}).status_code == 403
     for payload in [{'message': '  '}, {'message': 'x' * 2001},
                     {'message': 'Hi', 'history': history * 6},
@@ -93,7 +93,41 @@ def test_ai_chat_prompt_handles_empty_inventory(monkeypatch):
         return 'Kho chưa có hàng.'
     monkeypatch.setattr(ai_service, 'generate_ai_text', generate)
     assert ai_service.generate_chat_reply([], 'Kho có gì?', []) == 'Kho chưa có hàng.'
-    assert captured == [{'inventory': [], 'history': [], 'question': 'Kho có gì?'}]
+    assert captured == [{'warehouse_data': [], 'conversation_history': [], 'question': 'Kho có gì?'}]
+
+
+def test_ai_chat_partner_transactions(context):
+    from app.routers.ai import build_chat_ai_data
+    client, factory, password = context
+    now = datetime.utcnow()
+    with factory() as db:
+        db.get(models.Supplier, 1).name = 'Apple'
+        for index, (status, age, quantity) in enumerate([
+            ('confirmed', 1, 3), ('confirmed', 60, 7), ('draft', 0, 100), ('cancelled', 0, 200)
+        ]):
+            receipt = models.Receipt(receipt_no=f'AI-R{index}', supplier_id=1, created_by=1,
+                                     status=status, receipt_date=now - timedelta(days=age))
+            receipt.items = [models.ReceiptItem(product_id=1, quantity=quantity, unit_price=999)]
+            issue = models.Issue(issue_no=f'AI-I{index}', receiver='Apple', created_by=1,
+                                 status=status, issue_date=now - timedelta(days=age))
+            issue.items = [models.IssueItem(product_id=1, quantity=quantity)]
+            db.add_all([receipt, issue])
+        unnamed = models.Issue(issue_no='AI-UNNAMED', created_by=1, status='confirmed')
+        unnamed.items = [models.IssueItem(product_id=1, quantity=2)]
+        db.add(unnamed)
+        db.commit()
+        data = build_chat_ai_data(db)
+    assert data['suppliers'] == [{'supplier_id': 1, 'code': 'S1', 'name': 'Apple'}]
+    incoming = data['received_from_suppliers']
+    assert len(incoming) == 1
+    assert incoming[0]['total_quantity'] == 10
+    assert incoming[0]['quantity_last_30_days'] == 3
+    outgoing = next(row for row in data['issued_to_receivers'] if row['receiver'] == 'Apple')
+    assert outgoing['total_quantity'] == 10
+    assert outgoing['quantity_last_30_days'] == 3
+    assert outgoing['product_id'] == 1
+    assert any(row['receiver'] is None for row in data['issued_to_receivers'])
+    assert 'unit_price' not in str(data) and 'password' not in str(data)
 
 
 def test_anonymous_and_login_logout(context):

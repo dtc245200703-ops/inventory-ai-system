@@ -6,13 +6,42 @@
     const status = document.getElementById('aiChatStatus');
     const send = document.getElementById('aiChatSend');
     const clear = document.getElementById('aiChatClear');
+    const welcome = document.getElementById('aiChatWelcome');
     let history = [];
     let busy = false;
+    // Build a small Markdown subset with DOM nodes only; never interpret HTML.
+    function inline(parent, text) {
+        for (const part of text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g)) {
+            if (part.startsWith('**') && part.endsWith('**')) parent.append(node('strong', part.slice(2, -2)));
+            else if (part.startsWith('`') && part.endsWith('`')) parent.append(node('code', part.slice(1, -1)));
+            else parent.append(document.createTextNode(part));
+        }
+    }
+    function formatted(text) {
+        const body = node('div', undefined, 'ai-chat-body');
+        let list = null;
+        for (const line of text.split(/\r?\n/)) {
+            const item = line.match(/^\s*(?:([-*])|\d+[.)])\s+(.+)$/);
+            if (item) {
+                const type = item[1] ? 'ul' : 'ol';
+                if (!list || list.tagName.toLowerCase() !== type) {
+                    list = node(type); body.append(list);
+                }
+                const li = node('li'); inline(li, item[2]); list.append(li);
+            } else {
+                list = null;
+                if (!line.trim()) continue;
+                const p = node('p'); inline(p, line.replace(/^#{1,6}\s+/, '')); body.append(p);
+            }
+        }
+        return body;
+    }
     function addMessage(role, content) {
         const bubble = node('div', undefined, `ai-chat-message ${role}`);
-        bubble.append(node('strong', role === 'user' ? 'Bạn' : 'AI'), node('p', content));
+        bubble.append(node('strong', role === 'user' ? 'BẠN' : '✦ TRỢ LÝ KHO'),
+            role === 'assistant' ? formatted(content) : node('div', content, 'ai-chat-body'));
         messages.append(bubble);
-        messages.scrollTop = messages.scrollHeight;
+        messages.scrollTop += bubble.getBoundingClientRect().top - messages.getBoundingClientRect().top - 24;
         return bubble;
     }
     form.addEventListener('submit', async event => {
@@ -20,6 +49,7 @@
         const message = input.value.trim();
         if (busy || !message || !form.reportValidity()) return;
         busy = true;
+        welcome.hidden = true;
         send.disabled = clear.disabled = input.disabled = true;
         status.textContent = 'AI đang trả lời…';
         const pending = addMessage('user', message);
@@ -34,6 +64,7 @@
             status.textContent = '';
         } catch (error) {
             pending.remove();
+            if (!history.length) welcome.hidden = false;
             status.textContent = `${error.message} Câu hỏi được giữ lại để bạn gửi lại.`;
         } finally {
             busy = false;
@@ -49,9 +80,17 @@
     });
     clear.addEventListener('click', () => {
         history = [];
-        messages.replaceChildren();
+        messages.replaceChildren(welcome);
+        welcome.hidden = false;
         status.textContent = '';
         input.value = '';
         input.focus();
+    });
+    document.querySelectorAll('[data-chat-question]').forEach(button => {
+        button.addEventListener('click', () => {
+            if (busy) return;
+            input.value = button.dataset.chatQuestion;
+            form.requestSubmit();
+        });
     });
 })();
