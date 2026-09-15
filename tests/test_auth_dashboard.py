@@ -82,7 +82,9 @@ def test_ai_chat_context_validation_and_errors(context, monkeypatch):
     assert response.status_code == 503
     assert 'private provider details' not in response.text
     headers = sign_in(client, password, 'thu_kho')
-    assert client.post('/ai/chat', headers=headers, json={'message': 'Hello'}).status_code == 403
+    monkeypatch.setattr(ai, 'generate_chat_reply', reply)
+    assert client.post('/ai/chat', headers=headers, json={'message': 'Hello'}).status_code == 200
+    assert client.post('/ai/inventory-report', headers=headers).status_code == 403
 
 
 def test_ai_chat_prompt_handles_empty_inventory(monkeypatch):

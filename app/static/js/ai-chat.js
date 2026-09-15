@@ -7,8 +7,27 @@
     const send = document.getElementById('aiChatSend');
     const clear = document.getElementById('aiChatClear');
     const welcome = document.getElementById('aiChatWelcome');
+    const drawer = document.getElementById('ai');
+    const toggle = document.getElementById('aiChatToggle');
+    const close = document.getElementById('aiChatClose');
     let history = [];
     let busy = false;
+    function setOpen(open) {
+        drawer.hidden = !open;
+        toggle.setAttribute('aria-expanded', String(open));
+        toggle.setAttribute('aria-label', open ? 'Đóng trợ lý AI' : 'Mở trợ lý AI');
+        if (open) {
+            toggle.removeAttribute('data-unread');
+            const last = messages.lastElementChild;
+            if (last && last !== welcome) messages.scrollTop += last.getBoundingClientRect().top - messages.getBoundingClientRect().top - 24;
+            (busy ? close : input).focus();
+        } else toggle.focus();
+    }
+    toggle.addEventListener('click', () => setOpen(drawer.hidden));
+    close.addEventListener('click', () => setOpen(false));
+    drawer.addEventListener('keydown', event => {
+        if (event.key === 'Escape') { event.preventDefault(); setOpen(false); }
+    });
     // Build a small Markdown subset with DOM nodes only; never interpret HTML.
     function inline(parent, text) {
         for (const part of text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g)) {
@@ -58,6 +77,7 @@
                 method: 'POST', body: JSON.stringify({message, history}),
             });
             addMessage('assistant', response.result);
+            if (drawer.hidden) toggle.setAttribute('data-unread', 'true');
             history = [...history, {role: 'user', content: message},
                 {role: 'assistant', content: response.result.slice(0, 20000)}].slice(-10);
             input.value = '';
@@ -69,7 +89,7 @@
         } finally {
             busy = false;
             send.disabled = clear.disabled = input.disabled = false;
-            input.focus();
+            if (!drawer.hidden) input.focus();
         }
     });
     input.addEventListener('keydown', event => {

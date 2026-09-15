@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block head %}<link rel="stylesheet" href="/static/css/ai-chat.css?v=2">{% endblock %}
+
 {% block content %}
 <section class="stats" aria-label="Thống kê kho">
 {% for id, label, hint, icon in [('total_products','Tổng số mặt hàng','Mặt hàng trong hệ thống','📦'),('total_stock','Tổng số lượng tồn','Tổng số đơn vị hàng hóa','🏬'),('low_stock','Dưới tồn tối thiểu','Tồn nhỏ hơn ngưỡng tối thiểu','⚠️'),('stale_stock','Hàng tồn lâu','Còn tồn, ít nhất 90 ngày không xuất','🕒'),('receipts_this_month','Phiếu nhập tháng này','Phiếu đã xác nhận','📥'),('issues_this_month','Phiếu xuất tháng này','Phiếu đã xác nhận','📤')] %}
@@ -10,10 +10,10 @@
 <article class="panel"><div class="panel-header"><h3>Top 5 sản phẩm xuất nhiều</h3></div><p class="muted">Theo khoảng thời gian đang chọn.</p><div id="topProducts"></div></article></section>
 <section class="grid section-gap"><article class="panel"><div class="panel-header"><h3>Hàng sắp hết</h3></div><div id="lowStockList" class="stock-list"></div></article><article class="panel"><div class="panel-header"><h3>Hàng tồn lâu</h3></div><p class="muted">Còn tồn và ≥90 ngày không xuất. Nếu chưa từng xuất, tính từ lịch sử đầu tiên; không phải tuổi tồn theo lô.</p><p id="unknownAge" class="muted"></p><div id="staleStockList" class="stock-list"></div></article></section>
 {% if user.role in ['admin','ke_toan'] %}
-<section class="panel ai-panel section-gap" id="ai">
-{% include 'partials/ai_chat.html' %}
+<section class="panel ai-panel section-gap" id="aiReports">
+
 <details class="ai-chat-reports"><summary>Báo cáo và phân tích nhanh</summary><div class="toolbar"><button class="btn-secondary" data-ai="/ai/inventory-report">Báo cáo kho</button><button class="btn-secondary" data-ai="/ai/restock-suggestion">Gợi ý nhập hàng</button><button class="btn-secondary" data-ai="/ai/anomaly-summary">Phân tích bất thường</button></div><div id="aiResult" class="ai-result" role="status">Chọn chức năng để phân tích dữ liệu hiện tại.</div>
 </details></section>
 {% endif %}
 {% endblock %}
-{% block scripts %}<script src="/static/js/dashboard.js"></script><script src="/static/js/reports.js"></script><script src="/static/js/ai-chat.js?v=2"></script>{% endblock %}
+{% block scripts %}<script src="/static/js/dashboard.js"></script><script src="/static/js/reports.js"></script>{% endblock %}

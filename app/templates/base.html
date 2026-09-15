@@ -3,7 +3,7 @@
 <title>{{ title|default('Tổng quan kho') }} · Inventory AI</title>
 <link rel="stylesheet" href="/static/css/style.css"><link rel="stylesheet" href="/static/css/workspace.css">
 {% block head %}{% endblock %}
-<link rel="stylesheet" href="/static/css/navigation.css">
+<link rel="stylesheet" href="/static/css/navigation.css"><link rel="stylesheet" href="/static/css/ai-chat.css?v=drawer1">
 <link rel="stylesheet" href="/static/css/warehouse-theme.css?v=1"></head><body data-role="{{ user.role }}" data-page="{{ page }}"><div class="app">
 <aside class="sidebar"><div class="brand"><div class="brand-icon">📦</div><div><h2>Inventory AI</h2><span>Quản lý kho thông minh</span></div></div>
 <p class="menu-title">KHÔNG GIAN LÀM VIỆC</p>
@@ -15,6 +15,7 @@
 {% endif %}{% endfor %}
 {% if user.role in ['admin','thu_kho'] %}
 <a class="menu-item {{ 'active' if page == 'categories' else '' }}" href="/workspace/categories">Nhóm hàng</a>
+<a class="menu-item {{ 'active' if page == 'brands' else '' }}" href="/workspace/brands">Nhãn hàng</a>
 <a class="menu-item {{ 'active' if page == 'units' else '' }}" href="/workspace/units">Đơn vị tính</a>
 {% endif %}
 <a class="menu-item {{ 'active' if page == 'suppliers' else '' }}" href="/workspace/suppliers">Nhà cung cấp</a>
@@ -27,4 +28,4 @@
 <button id="dismissNavigationNotice" type="button" aria-label="Đóng thông báo">×</button>
 </div>
 {% block content %}{% endblock %}
-</main></div><script src="/static/js/session.js"></script><script src="/static/js/navigation.js"></script>{% block scripts %}{% endblock %}</body></html>
+</main></div>{% include 'partials/ai_widget.html' %}<script src="/static/js/session.js"></script><script src="/static/js/navigation.js"></script>{% block scripts %}{% endblock %}<script src="/static/js/ai-chat.js?v=drawer1"></script></body></html>

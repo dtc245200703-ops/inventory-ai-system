@@ -1,7 +1,7 @@
 const catalogPage = document.body.dataset.page;
 const canManage = ['admin','thu_kho'].includes(document.body.dataset.role);
-const idField = {categories:'category_id', units:'unit_id', suppliers:'supplier_id'}[catalogPage];
-const nameField = {categories:'category_name', units:'unit_name', suppliers:'name'}[catalogPage];
+const idField = {brands:'brand_id', categories:'category_id', units:'unit_id', suppliers:'supplier_id'}[catalogPage];
+const nameField = {brands:'brand_name', categories:'category_name', units:'unit_name', suppliers:'name'}[catalogPage];
 const el = id => document.getElementById(id);
 let editing = null, deleting = null, loadVersion = 0, searchTimer;
 function catalogButton(label, handler) { const b=node('button',label,'btn-secondary'); b.type='button'; b.addEventListener('click',handler); return b; }

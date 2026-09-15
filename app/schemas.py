@@ -48,6 +48,16 @@ class CategoryResponse(ORMBase):
     category_name: str
 
 
+class BrandCreate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+    brand_name: str = Field(min_length=1, max_length=100)
+
+
+class BrandResponse(ORMBase):
+    brand_id: int
+    brand_name: str
+
+
 # =========================================================
 # PRODUCT - SẢN PHẨM
 # =========================================================
@@ -57,6 +67,7 @@ class ProductCreate(BaseModel):
     product_code: str = Field(min_length=1, max_length=50)
     product_name: str = Field(min_length=1, max_length=200)
     category_id: Optional[int] = None
+    brand_id: Optional[int] = Field(default=None, ge=1)
     unit: str = Field(min_length=1, max_length=20)
     min_stock_level: int = Field(default=10, ge=0)
     purchase_price: Optional[Money] = None
@@ -76,6 +87,7 @@ class Product(ORMBase):
     product_code: str
     product_name: str
     category_id: Optional[int] = None
+    brand_id: Optional[int] = None
     unit: str
     min_stock_level: int
     purchase_price: Optional[Decimal] = None
@@ -84,6 +96,7 @@ class Product(ORMBase):
 
 class ProductDetail(Product):
     category_name: Optional[str] = None
+    brand_name: Optional[str] = None
     quantity_available: int
     stock_status: str
     last_updated: Optional[datetime] = None

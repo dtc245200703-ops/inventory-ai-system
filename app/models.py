@@ -19,6 +19,12 @@ class Category(Base):
 
     products = relationship("Product", back_populates="category")
 
+class Brand(Base):
+    __tablename__ = "brands"
+    brand_id = Column(Integer, primary_key=True, autoincrement=True)
+    brand_name = Column(String(100), nullable=False, unique=True)
+
+
 class Product(Base):
     __tablename__ = "products"
 
@@ -26,12 +32,14 @@ class Product(Base):
     product_code = Column(String(50), unique=True, nullable=False, index=True)
     product_name = Column(String(200), nullable=False)
     category_id = Column(Integer, ForeignKey("categories.category_id"))
+    brand_id = Column(Integer, ForeignKey("brands.brand_id"), nullable=True)
     unit = Column(String(20), nullable=False)
     min_stock_level = Column(Integer, default=10)
     purchase_price = Column(Numeric(14, 2), nullable=True)
     sale_price = Column(Numeric(14, 2), nullable=True)
 
     category = relationship("Category", back_populates="products")
+    brand = relationship("Brand")
     inventory = relationship("Inventory", back_populates="product", uselist=False, cascade="all, delete-orphan")
 
 class Inventory(Base):

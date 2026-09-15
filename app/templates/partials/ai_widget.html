@@ -1,0 +1,6 @@
+<button id="aiChatToggle" class="ai-chat-toggle" type="button" aria-label="Mở trợ lý AI" aria-expanded="false" aria-controls="ai" title="Chat với AI">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 11.5a8 8 0 0 1-8 8H5l-3 2v-10a9 9 0 0 1 18 0Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="m12 6 1.3 3.7L17 11l-3.7 1.3L12 16l-1.3-3.7L7 11l3.7-1.3L12 6Z" fill="currentColor"/></svg>
+</button>
+<section id="ai" class="ai-chat-drawer" role="dialog" aria-modal="false" aria-labelledby="aiChatTitle" hidden>
+    {% include 'partials/ai_chat.html' %}
+</section>

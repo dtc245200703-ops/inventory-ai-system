@@ -12,7 +12,7 @@ router = APIRouter(prefix="/products", tags=["Quản lý Sản phẩm"], depende
 
 
 def product_query(db):
-    return db.query(models.Product).options(joinedload(models.Product.category), joinedload(models.Product.inventory))
+    return db.query(models.Product).options(joinedload(models.Product.category), joinedload(models.Product.inventory), joinedload(models.Product.brand))
 
 
 def used_product_ids(db, product_id=None):
@@ -36,6 +36,7 @@ def describe(product, used):
     return {"product_id": product.product_id, "product_code": product.product_code,
             "product_name": product.product_name, "category_id": product.category_id,
             "category_name": product.category.category_name if product.category else None,
+            "brand_id": product.brand_id, "brand_name": product.brand.brand_name if product.brand else None,
             "unit": product.unit, "min_stock_level": product.min_stock_level or 0,
             "purchase_price": product.purchase_price, "sale_price": product.sale_price,
             "quantity_available": quantity, "stock_status": stock_status,
@@ -59,6 +60,8 @@ def validate_product(db, payload, exclude_id=None):
         raise HTTPException(409, "Mã hàng đã tồn tại.")
     if payload.category_id is not None and db.get(models.Category, payload.category_id) is None:
         raise HTTPException(404, "Không tìm thấy nhóm hàng.")
+    if payload.brand_id is not None and db.get(models.Brand, payload.brand_id) is None:
+        raise HTTPException(404, "Không tìm thấy nhãn hàng.")
 
 
 def commit(db):
@@ -71,10 +74,13 @@ def commit(db):
 
 @router.get("/", response_model=list[schemas.ProductDetail], summary="Tìm kiếm và lọc hàng hóa")
 def get_all_products(q: str = Query("", max_length=200), category_id: int | None = Query(None, ge=0),
+                     brand_id: int | None = Query(None, ge=0),
                      db: Session = Depends(get_db)):
     query = product_query(db).order_by(models.Product.product_code, models.Product.product_id)
     if category_id is not None:
         query = query.filter(models.Product.category_id == (category_id or None))
+    if brand_id is not None:
+        query = query.filter(models.Product.brand_id == (brand_id or None))
     products = query.all()
     # Python casefold supports Vietnamese upper/lowercase unlike SQLite lower().
     term = q.strip().casefold()
@@ -110,7 +116,7 @@ def update_product(product_id: int, payload: schemas.ProductCreate, db: Session 
     validate_product(db, payload, product_id)
     payload.unit = resolve_unit(db, payload.unit)
     for key, value in payload.model_dump().items():
-        if key in {'purchase_price', 'sale_price'} and key not in payload.model_fields_set:
+        if key in {'purchase_price', 'sale_price', 'brand_id'} and key not in payload.model_fields_set:
             continue
         setattr(product, key, value)
     commit(db)

@@ -3,11 +3,11 @@ from datetime import date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, case
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app import models, schemas
-from app.auth import report_user
+from app.auth import report_user, current_user
 from app.routers.reports import build_report
 
 from app.services.ai_service import (
@@ -24,7 +24,10 @@ router = APIRouter(
 )
 
 
-@router.post("/chat", response_model=schemas.AIResultResponse)
+chat_router = APIRouter(prefix="/ai", dependencies=[Depends(current_user)], tags=["Trợ lý AI"])
+
+
+@chat_router.post("/chat", response_model=schemas.AIResultResponse)
 def ai_chat(payload: schemas.AIChatRequest, db: Session = Depends(get_db)):
     data = build_chat_ai_data(db)
     try:
@@ -64,6 +67,8 @@ def build_chat_ai_data(db: Session):
     ).group_by(models.Issue.receiver, models.IssueItem.product_id).all()
     return {
         'inventory': build_inventory_ai_data(db),
+        'brands': [{'brand_id': b.brand_id, 'brand_name': b.brand_name}
+                   for b in db.query(models.Brand).order_by(models.Brand.brand_name)],
         'suppliers': [{'supplier_id': s.supplier_id, 'code': s.code, 'name': s.name} for s in suppliers],
         'received_from_suppliers': [
             {'supplier_id': supplier, 'product_id': product, 'total_quantity': total,
@@ -74,13 +79,13 @@ def build_chat_ai_data(db: Session):
              'quantity_last_30_days': recent, 'last_issued_at': last}
             for receiver, product, total, recent, last in outgoing],
         'scope': 'Tổng hợp toàn bộ phiếu đã xác nhận; số lượng 30 ngày tính theo thời gian UTC.',
-        'limitations': 'Chưa có trường thương hiệu sản phẩm hoặc đơn đặt hàng/nhu cầu tương lai. '
+        'limitations': 'Hàng chưa gán nhãn có brand_id và brand_name là null. Chưa có đơn đặt hàng/nhu cầu tương lai. '
                         'Bên nhận trống nghĩa là phiếu chưa ghi bên nhận, không phải không có giao dịch.',
     }
 
 def build_inventory_ai_data(db: Session, start=None, end=None):
 
-    products = db.query(models.Product).all()
+    products = db.query(models.Product).options(joinedload(models.Product.brand)).all()
 
     result = []
 
@@ -152,6 +157,8 @@ def build_inventory_ai_data(db: Session, start=None, end=None):
                 "product_id": product.product_id,
                 "product_code": product.product_code,
                 "product_name": product.product_name,
+                "brand_id": product.brand_id,
+                "brand_name": product.brand.brand_name if product.brand else None,
                 "unit": product.unit,
                 "quantity_available": current_stock,
                 "min_stock_level": product.min_stock_level,

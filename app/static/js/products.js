@@ -9,7 +9,14 @@ function addOption(select, value, label) {
     const item = node('option', label); item.value = value; select.append(item);
 }
 async function loadCategories() {
-    const [categories, units] = await Promise.all([api('/categories/'), api('/units/')]);
+    const [categories, units, brands] = await Promise.all([api('/categories/'), api('/units/'), api('/brands/')]);
+    for (const [id, placeholder] of [['brandFilter', 'Tất cả nhãn hàng'], ['editorBrand', 'Chưa gán nhãn']]) {
+        const select = byId(id), previous = select.value;
+        select.replaceChildren(); addOption(select, '', placeholder);
+        if (id === 'brandFilter') addOption(select, '0', 'Chưa gán nhãn');
+        brands.forEach(brand => addOption(select, brand.brand_id, brand.brand_name));
+        select.value = previous;
+    }
     let unitOptions = byId('unitOptions');
     if (!unitOptions) {
         unitOptions = node('datalist'); unitOptions.id = 'unitOptions';
@@ -37,6 +44,7 @@ async function loadProducts() {
     const version = ++requestVersion;
     const query = new URLSearchParams({q: byId('productSearch').value.trim()});
     if (byId('categoryFilter').value !== '') query.set('category_id', byId('categoryFilter').value);
+    if (byId('brandFilter').value !== '') query.set('brand_id', byId('brandFilter').value);
     byId('reloadProducts').disabled = true;
     byId('productsBody').setAttribute('aria-busy', 'true');
     try {
@@ -46,11 +54,11 @@ async function loadProducts() {
         byId('productCount').textContent = `${numberText(products.length)} mặt hàng phù hợp`;
         if (!products.length) {
             const row = node('tr'), cell = node('td', 'Không có hàng hóa phù hợp. Thử bỏ bộ lọc hoặc thêm hàng hóa mới.', 'empty');
-            cell.colSpan = 10; row.append(cell); body.append(row);
+            cell.colSpan = 11; row.append(cell); body.append(row);
         }
         for (const product of products) {
             const row = node('tr'); row.dataset.id = product.product_id;
-            const values = [product.product_code, product.product_name, product.category_name || 'Chưa phân nhóm', product.unit,
+            const values = [product.product_code, product.product_name, product.category_name || 'Chưa phân nhóm', product.brand_name || 'Chưa gán nhãn', product.unit,
                 priceText(product.purchase_price), priceText(product.sale_price),
                 numberText(product.quantity_available), numberText(product.min_stock_level)];
             values.forEach(value => row.append(node('td', value)));
@@ -77,7 +85,7 @@ async function openEditor(id = null) {
         const form = byId('productEditorForm'); form.reset();
         byId('editorError').textContent = '';
         byId('editorTitle').textContent = product ? 'Sửa hàng hóa' : 'Thêm hàng hóa';
-        for (const field of ['product_code', 'product_name', 'unit', 'min_stock_level', 'category_id', 'purchase_price', 'sale_price']) {
+        for (const field of ['product_code', 'product_name', 'unit', 'min_stock_level', 'category_id', 'brand_id', 'purchase_price', 'sale_price']) {
             if (product) form.elements[field].value = product[field] ?? '';
         }
         byId('stockHint').textContent = product ? `Tồn hiện tại: ${numberText(product.quantity_available)} ${product.unit}. Sửa thông tin không thay đổi số lượng tồn.` : 'Hàng mới có tồn bằng 0. Lập phiếu nhập để tăng tồn.';
@@ -92,6 +100,7 @@ async function showDetails(id) {
         const fields = [['Mã hàng', p.product_code], ['Tên hàng', p.product_name], ['Nhóm hàng', p.category_name || 'Chưa phân nhóm'], ['Đơn vị tính', p.unit], ['Số lượng tồn', numberText(p.quantity_available)], ['Tồn tối thiểu', numberText(p.min_stock_level)], ['Trạng thái', stockLabels[p.stock_status]], ['Cập nhật tồn (giờ Việt Nam)', timestamp]];
         const content = byId('detailsContent'); content.replaceChildren();
         fields.push(['Giá nhập mặc định', priceText(p.purchase_price)], ['Giá xuất mặc định', priceText(p.sale_price)]);
+        fields.push(['Nhãn hàng', p.brand_name || 'Chưa gán nhãn']);
         fields.forEach(([label, value]) => content.append(node('dt', label), node('dd', value)));
         byId('deletionNote').textContent = p.deletion_reason || 'Hàng hóa chưa sử dụng, có thể xóa.';
         byId('productDetails').showModal();
@@ -109,6 +118,7 @@ byId('productEditorForm').addEventListener('submit', async event => {
     const form = event.currentTarget, button = byId('saveProduct'); button.disabled = true;
     const values = Object.fromEntries(new FormData(form));
     values.category_id = values.category_id ? Number(values.category_id) : null;
+    values.brand_id = values.brand_id ? Number(values.brand_id) : null;
     values.min_stock_level = Number(values.min_stock_level);
     values.purchase_price = values.purchase_price || null;
     values.sale_price = values.sale_price || null;
@@ -142,6 +152,7 @@ byId('editFromDetails').addEventListener('click', () => { byId('productDetails')
 byId('productFilters').addEventListener('submit', event => { event.preventDefault(); clearTimeout(debounceTimer); loadProducts(); });
 byId('productSearch').addEventListener('input', () => { clearTimeout(debounceTimer); debounceTimer = setTimeout(loadProducts, 250); });
 byId('categoryFilter').addEventListener('change', loadProducts);
+byId('brandFilter').addEventListener('change', loadProducts);
 byId('clearFilters').addEventListener('click', () => { clearTimeout(debounceTimer); byId('productFilters').reset(); loadProducts(); });
 byId('reloadProducts').addEventListener('click', async () => { try { await loadCategories(); await loadProducts(); } catch (error) { message(error.message, true); } });
 (async () => { try { await loadCategories(); await loadProducts(); } catch (error) { message(error.message, true); } })();

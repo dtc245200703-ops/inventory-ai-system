@@ -12,6 +12,8 @@ from app.routers import auth, users, dashboard as dashboard_api, suppliers, regi
 from app.database import SessionLocal
 from app.services.catalog_service import import_existing_units
 from app.services.price_migration import migrate_prices
+from app.services.brand_migration import migrate_brands
+from app.routers import brands
 from app.database import get_db
 
 from app.routers import (
@@ -29,6 +31,7 @@ from app.routers import (
 
 models.Base.metadata.create_all(bind=engine)
 migrate_prices(engine)
+migrate_brands(engine)
 # create_all does not add columns to an existing SQLite database. Keep demo data
 # compatible while introducing the recipient field for issue vouchers.
 if "receiver" not in {column["name"] for column in inspect(engine).get_columns("issues")}:
@@ -84,6 +87,8 @@ templates = Jinja2Templates(
 app.include_router(products.router)
 app.include_router(inventory.router)
 app.include_router(ai.router)
+app.include_router(ai.chat_router)
+app.include_router(brands.router)
 app.include_router(receipts.router)
 app.include_router(issues.router)
 app.include_router(auth.router)
@@ -1781,6 +1786,7 @@ def workspace_page(page: str, request: Request, user=Depends(optional_user)):
     if user is None:
         return RedirectResponse("/login", status_code=303)
     allowed = {"products": {"admin", "thu_kho"}, "inventory": {"admin", "thu_kho"},
+               "brands": {"admin", "thu_kho"},
                "categories": {"admin", "thu_kho"}, "units": {"admin", "thu_kho"}, "suppliers": set(ROLE_LABELS),
                "receipts": set(ROLE_LABELS), "issues": set(ROLE_LABELS), "history": set(ROLE_LABELS),
                "users": {"admin"}, "reports": {"admin", "ke_toan"}}
@@ -1789,10 +1795,11 @@ def workspace_page(page: str, request: Request, user=Depends(optional_user)):
     if user.role not in allowed[page]:
         raise HTTPException(403, "Bạn không có quyền truy cập trang này.")
     titles = {"products": "Hàng hóa", "inventory": "Tồn kho", "receipts": "Phiếu nhập",
+              "brands": "Nhãn hàng",
               "categories": "Nhóm hàng", "units": "Đơn vị tính", "suppliers": "Nhà cung cấp",
               "issues": "Phiếu xuất", "history": "Lịch sử nhập – xuất",
               "users": "Quản lý tài khoản", "reports": "Báo cáo – AI"}
-    template = ('catalog.html' if page in ['categories', 'units', 'suppliers'] else
+    template = ('catalog.html' if page in ['categories', 'units', 'suppliers', 'brands'] else
                 'products.html' if page == 'products' else
                 'inventory.html' if page == 'inventory' else
                 'reports.html' if page == 'reports' else
