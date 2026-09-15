@@ -14,6 +14,7 @@ from app.services.ai_service import (
     generate_inventory_report,
     generate_restock_suggestion,
     generate_anomaly_summary,
+    generate_chat_reply,
 )
 
 
@@ -21,6 +22,20 @@ router = APIRouter(
     prefix="/ai", dependencies=[Depends(report_user)],
     tags=["Trợ lý AI"]
 )
+
+
+@router.post("/chat", response_model=schemas.AIResultResponse)
+def ai_chat(payload: schemas.AIChatRequest, db: Session = Depends(get_db)):
+    data = build_inventory_ai_data(db)
+    try:
+        result = generate_chat_reply(
+            data, payload.message, [item.model_dump() for item in payload.history]
+        )
+        return {"report_type": "chat", "result": result}
+    except RuntimeError as error:
+        raise HTTPException(503, str(error)) from error
+    except Exception as error:
+        raise HTTPException(503, "Không thể kết nối AI lúc này. Vui lòng thử lại sau.") from error
 
 
 # =========================================================

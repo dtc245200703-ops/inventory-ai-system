@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import List, Optional, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -238,3 +238,15 @@ class AIReportResponse(ORMBase):
 class AIResultResponse(BaseModel):
     report_type: str
     result: str
+
+
+class AIChatMessage(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=20000)
+
+
+class AIChatRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+    message: str = Field(min_length=1, max_length=2000)
+    history: List[AIChatMessage] = Field(default_factory=list, max_length=10)

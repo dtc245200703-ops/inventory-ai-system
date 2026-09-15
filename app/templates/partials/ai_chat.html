@@ -1,0 +1,15 @@
+<div class="ai-chat">
+    <h3>Chat với AI</h3>
+    <p class="muted">Hỏi về tồn kho, nhập hàng hoặc cách quản lý kho. AI nhớ 5 lượt hỏi đáp gần nhất khi bạn ở trang này.</p>
+    <div id="aiChatMessages" class="ai-chat-messages" role="log" aria-label="Hội thoại với AI" aria-live="polite"></div>
+    <form id="aiChatForm">
+        <label for="aiChatInput">Câu hỏi của bạn</label>
+        <textarea id="aiChatInput" rows="3" maxlength="2000" required placeholder="Ví dụ: Mặt hàng nào cần nhập thêm và nên nhập bao nhiêu?"></textarea>
+        <div class="toolbar">
+            <button id="aiChatSend" type="submit" class="btn-primary">Gửi câu hỏi</button>
+            <button id="aiChatClear" type="button" class="btn-secondary">Cuộc trò chuyện mới</button>
+            <span class="muted">Enter để gửi · Shift + Enter để xuống dòng</span>
+        </div>
+        <p id="aiChatStatus" role="status"></p>
+    </form>
+</div>

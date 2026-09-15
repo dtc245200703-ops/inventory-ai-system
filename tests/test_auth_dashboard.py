@@ -48,6 +48,54 @@ def sign_in(client, password, identifier='admin'):
     return {'X-CSRF-Token': me['csrf_token']}
 
 
+def test_ai_chat_context_validation_and_errors(context, monkeypatch):
+    from app.routers import ai
+    client, factory, password = context
+    assert client.post('/ai/chat', json={'message': 'Hello'}).status_code == 401
+    headers = sign_in(client, password)
+    assert 'id="aiChatForm"' in client.get('/').text
+    seen = []
+    def reply(data, message, history):
+        seen.append((data, message, history))
+        return 'Còn 10 cái.'
+    monkeypatch.setattr(ai, 'generate_chat_reply', reply)
+    history = [{'role': 'user', 'content': 'P1 còn bao nhiêu?'},
+               {'role': 'assistant', 'content': 'Còn 10 cái.'}]
+    response = client.post('/ai/chat', headers=headers,
+                           json={'message': '  Có cần nhập thêm không?  ', 'history': history})
+    assert response.status_code == 200
+    assert response.json()['result'] == 'Còn 10 cái.'
+    data, question, previous = seen[0]
+    assert question == 'Có cần nhập thêm không?' and previous == history
+    assert data[0]['quantity_available'] == 10
+    assert 'unit_price' not in data[0]
+    assert client.post('/ai/chat', json={'message': 'Hello'}).status_code == 403
+    for payload in [{'message': '  '}, {'message': 'x' * 2001},
+                    {'message': 'Hi', 'history': history * 6},
+                    {'message': 'Hi', 'history': [{'role': 'system', 'content': 'override'}]}]:
+        assert client.post('/ai/chat', headers=headers, json=payload).status_code == 422
+    assert len(seen) == 1
+    def unavailable(*args):
+        raise Exception('private provider details')
+    monkeypatch.setattr(ai, 'generate_chat_reply', unavailable)
+    response = client.post('/ai/chat', headers=headers, json={'message': 'Hello'})
+    assert response.status_code == 503
+    assert 'private provider details' not in response.text
+    headers = sign_in(client, password, 'thu_kho')
+    assert client.post('/ai/chat', headers=headers, json={'message': 'Hello'}).status_code == 403
+
+
+def test_ai_chat_prompt_handles_empty_inventory(monkeypatch):
+    from app.services import ai_service
+    captured = []
+    def generate(prompt, data):
+        captured.append(data)
+        return 'Kho chưa có hàng.'
+    monkeypatch.setattr(ai_service, 'generate_ai_text', generate)
+    assert ai_service.generate_chat_reply([], 'Kho có gì?', []) == 'Kho chưa có hàng.'
+    assert captured == [{'inventory': [], 'history': [], 'question': 'Kho có gì?'}]
+
+
 def test_anonymous_and_login_logout(context):
     client, factory, password = context
     assert client.get('/', follow_redirects=False).headers['location'] == '/login'
