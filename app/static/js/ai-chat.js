@@ -80,6 +80,7 @@
         send.setAttribute('aria-label', 'Đang chờ AI trả lời');
         send.title = 'Đang chờ AI trả lời';
         const pending = addMessage('user', message);
+        input.value = '';
         form.setAttribute('aria-busy', 'true');
         try {
             const response = await api('/ai/chat', {
@@ -92,6 +93,7 @@
             input.value = '';
             status.textContent = '';
         } catch (error) {
+            input.value = message;
             pending.remove();
             if (!history.length) welcome.hidden = false;
             status.textContent = `${error.message} Câu hỏi được giữ lại để bạn gửi lại.`;

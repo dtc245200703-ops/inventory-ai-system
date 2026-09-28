@@ -49,6 +49,7 @@ CHECK = r"""
     el('aiChatInput').value = 'Apple còn những hàng gì?'; el('aiChatForm').requestSubmit();
     await wait(100);
     check(window.fixtureRequests.length === 1 && el('aiChatSend').disabled, 'send and loading');
+    check(el('aiChatInput').value === '', 'composer clears immediately after sending');
     check(getComputedStyle(el('aiChatSend').querySelector('.ai-chat-spinner')).display !== 'none', 'send button spinner visible');
     check(el('aiChatStatus').querySelectorAll('.ai-chat-thinking-dots span').length === 3, 'animated status dots');
     el('aiChatForm').dispatchEvent(new Event('submit', {cancelable: true}));
