@@ -72,6 +72,12 @@
         send.disabled = clear.disabled = input.disabled = true;
         status.textContent = 'AI đang trả lời…';
         const pending = addMessage('user', message);
+        const loading = addMessage('assistant', 'Đang xử lý câu hỏi…');
+        loading.classList.add('ai-chat-loading');
+        loading.setAttribute('aria-hidden', 'true');
+        const spinner = node('span', undefined, 'ai-chat-spinner');
+        loading.querySelector('.ai-chat-body').prepend(spinner);
+        form.setAttribute('aria-busy', 'true');
         try {
             const response = await api('/ai/chat', {
                 method: 'POST', body: JSON.stringify({message, history}),
@@ -87,6 +93,8 @@
             if (!history.length) welcome.hidden = false;
             status.textContent = `${error.message} Câu hỏi được giữ lại để bạn gửi lại.`;
         } finally {
+            loading.remove();
+            form.removeAttribute('aria-busy');
             busy = false;
             send.disabled = clear.disabled = input.disabled = false;
             if (!drawer.hidden) input.focus();

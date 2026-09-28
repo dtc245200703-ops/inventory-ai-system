@@ -42,6 +42,11 @@
 .ai-chat-footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; font-size: 11px; color: #80918e; padding-top: 9px; }
 #aiChatStatus { margin: 6px 0 0; font-size: 13px; color: #526c72; }
 #aiChatStatus:empty { display: none; }
+.ai-chat-loading .ai-chat-body { display: flex; align-items: center; gap: 10px; color: #526c72; }
+.ai-chat-loading .ai-chat-body p { margin: 0; }
+.ai-chat-spinner { display: inline-block; flex: 0 0 18px; width: 18px; height: 18px; border: 2px solid #d5e9e3; border-top-color: #0f766e; border-radius: 50%; animation: ai-chat-spin .8s linear infinite; }
+@keyframes ai-chat-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .ai-chat-spinner { animation: none; } }
 .ai-chat-reports { border-top: 1px solid #e7eeee; padding: 16px 26px; }
 .ai-chat-reports summary { font-size: 13px; color: #526c72; cursor: pointer; }
 .ai-chat-reports .toolbar { margin-top: 14px; }

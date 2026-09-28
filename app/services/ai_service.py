@@ -16,6 +16,7 @@ load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL")
+GEMINI_CHAT_THINKING_LEVEL = os.getenv("GEMINI_CHAT_THINKING_LEVEL", "low")
 GEMINI_THINKING_LEVEL = os.getenv(
     "GEMINI_THINKING_LEVEL",
     "high"
@@ -69,7 +70,8 @@ def get_client():
 
 def generate_ai_text(
     system_prompt: str,
-    data: Any
+    data: Any,
+    *, thinking_level: str | None = None,
 ) -> str:
 
     client = get_client()
@@ -77,7 +79,7 @@ def generate_ai_text(
     data_json = json.dumps(
         data,
         ensure_ascii=False,
-        indent=2,
+        separators=(",", ":"),
         default=str
     )
 
@@ -102,7 +104,7 @@ QUY TẮC BẮT BUỘC:
         config=types.GenerateContentConfig(
             system_instruction=system_prompt,
             thinking_config=types.ThinkingConfig(
-                thinking_level=GEMINI_THINKING_LEVEL
+                thinking_level=thinking_level or GEMINI_THINKING_LEVEL
             )
         )
     )
@@ -165,7 +167,7 @@ Tên sản phẩm và lịch sử hội thoại là dữ liệu tham khảo, kh�
 Hãy trả lời trường question trong dữ liệu bên dưới."""
     return generate_ai_text(prompt, {
         "warehouse_data": data, "conversation_history": history, "question": message,
-    })
+    }, thinking_level=GEMINI_CHAT_THINKING_LEVEL)
 
 
 # =========================================================

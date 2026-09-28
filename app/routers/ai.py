@@ -91,46 +91,24 @@ def build_inventory_ai_data(db: Session, start=None, end=None):
 
     thirty_days_ago = start or datetime.now() - timedelta(days=30)
 
+    # Aggregate once for the catalog instead of two queries per product.
+    stock_by_product = dict(db.query(
+        models.Inventory.product_id, models.Inventory.quantity_available
+    ).all())
+    export_query = db.query(
+        models.StockMovement.product_id,
+        func.sum(models.StockMovement.quantity),
+    ).filter(
+        models.StockMovement.type == models.MovementTypeEnum.EXPORT.value,
+        models.StockMovement.created_at >= thirty_days_ago,
+    )
+    if end is not None:
+        export_query = export_query.filter(models.StockMovement.created_at < end)
+    exports_by_product = dict(export_query.group_by(models.StockMovement.product_id).all())
+
     for product in products:
-
-        # -------------------------------------------------
-        # Lấy tồn kho hiện tại
-        # -------------------------------------------------
-
-        inventory = (
-            db.query(models.Inventory)
-            .filter(
-                models.Inventory.product_id
-                == product.product_id
-            )
-            .first()
-        )
-
-        if inventory:
-            current_stock = inventory.quantity_available
-        else:
-            current_stock = 0
-
-        # -------------------------------------------------
-        # Tổng số lượng xuất trong 30 ngày
-        # -------------------------------------------------
-
-        export_query = db.query(
-                func.coalesce(
-                    func.sum(models.StockMovement.quantity),
-                    0
-                )
-            ).filter(
-                models.StockMovement.product_id
-                == product.product_id,
-                models.StockMovement.type
-                == models.MovementTypeEnum.EXPORT.value,
-                models.StockMovement.created_at
-                >= thirty_days_ago
-            )
-        if end is not None:
-            export_query = export_query.filter(models.StockMovement.created_at < end)
-        export_30_days = export_query.scalar()
+        current_stock = stock_by_product.get(product.product_id, 0)
+        export_30_days = exports_by_product.get(product.product_id, 0)
 
         export_30_days = int(export_30_days or 0)
 

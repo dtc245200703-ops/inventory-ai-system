@@ -40,6 +40,40 @@ def context():
     engine.dispose()
 
 
+def test_ai_inventory_aggregation(context):
+    from sqlalchemy import event
+    from app.routers.ai import build_inventory_ai_data
+    _, factory, _ = context
+    start, end = datetime(2026, 1, 1), datetime(2026, 2, 1)
+    with factory() as db:
+        db.add_all([models.Product(product_code=f'EX{i}', product_name=f'Extra {i}',
+                                   unit='Cái', min_stock_level=5) for i in range(20)])
+        for timestamp, kind, quantity in [
+            (start, 'EXPORT', 3), (end - timedelta(seconds=1), 'EXPORT', 4),
+            (end, 'EXPORT', 20), (start - timedelta(seconds=1), 'EXPORT', 30),
+            (start, 'IMPORT', 50),
+        ]:
+            db.add(models.StockMovement(product_id=1, type=models.MovementTypeEnum[kind].value, quantity=quantity,
+                   ref_id=1, balance_after=10, created_by=1, created_at=timestamp))
+        db.commit()
+        queries = []
+        engine = db.get_bind()
+        def capture(*args):
+            queries.append(args[2])
+        event.listen(engine, 'before_cursor_execute', capture)
+        try:
+            rows = build_inventory_ai_data(db, start, end)
+        finally:
+            event.remove(engine, 'before_cursor_execute', capture)
+        assert len(queries) == 3
+        assert len(rows) == 21
+        original = next(row for row in rows if row['product_id'] == 1)
+        assert original['export_30_days'] == 7
+        assert original['quantity_available'] == 10
+        assert all(row['quantity_available'] == row['export_30_days'] == 0
+                   for row in rows if row['product_id'] != 1)
+
+
 def sign_in(client, password, identifier='admin'):
     result = client.post('/auth/login', headers={'X-Requested-With': 'inventory-app'},
                          json={'identifier': identifier, 'password': password})
@@ -90,7 +124,8 @@ def test_ai_chat_context_validation_and_errors(context, monkeypatch):
 def test_ai_chat_prompt_handles_empty_inventory(monkeypatch):
     from app.services import ai_service
     captured = []
-    def generate(prompt, data):
+    def generate(prompt, data, **kwargs):
+        assert kwargs['thinking_level'] == ai_service.GEMINI_CHAT_THINKING_LEVEL
         captured.append(data)
         return 'Kho chưa có hàng.'
     monkeypatch.setattr(ai_service, 'generate_ai_text', generate)
