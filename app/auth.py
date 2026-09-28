@@ -11,7 +11,8 @@ from app.database import get_db
 from app.models import AuthSession, User
 
 COOKIE_NAME = "inventory_session"
-ROLE_LABELS = {"admin": "Quản trị viên", "thu_kho": "Thủ kho", "ke_toan": "Kế toán"}
+ROLE_LABELS = {"admin": "Quản trị viên", "thu_kho": "Thủ kho", "ke_toan": "Kế toán", "nhan_hang": "Nhãn hàng / Đối tác"}
+STAFF_ROLES = {"admin", "thu_kho", "ke_toan"}
 
 
 def hash_password(password: str) -> str:
@@ -51,7 +52,7 @@ def optional_user(request: Request, db: Session = Depends(get_db)):
     return user
 
 
-def current_user(request: Request, user=Depends(optional_user)):
+def authenticated_user(request: Request, user=Depends(optional_user)):
     if user is None:
         raise HTTPException(401, "Vui lòng đăng nhập lại.")
     if request.method not in {"GET", "HEAD", "OPTIONS"}:
@@ -61,8 +62,15 @@ def current_user(request: Request, user=Depends(optional_user)):
     return user
 
 
+def current_user(user=Depends(authenticated_user)):
+    """Existing warehouse routes are internal; partners use explicitly scoped routes."""
+    if user.role not in STAFF_ROLES:
+        raise HTTPException(403, "Tài khoản nhãn hàng chỉ được truy cập dữ liệu của mình.")
+    return user
+
+
 def require_roles(*roles):
-    def dependency(user=Depends(current_user)):
+    def dependency(user=Depends(authenticated_user)):
         if user.role not in roles:
             raise HTTPException(403, "Bạn không có quyền thực hiện thao tác này.")
         return user

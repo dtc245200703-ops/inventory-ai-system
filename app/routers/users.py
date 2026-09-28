@@ -38,12 +38,12 @@ class AccountIdentity(BaseModel):
 
 
 class AccountCreate(AccountIdentity):
-    role: Literal["admin", "thu_kho", "ke_toan"]
+    role: Literal["admin", "thu_kho", "ke_toan", "nhan_hang"]
 
 
 class AccountUpdate(BaseModel):
     full_name: str | None = Field(default=None, min_length=1, max_length=200)
-    role: Literal["admin", "thu_kho", "ke_toan"]
+    role: Literal["admin", "thu_kho", "ke_toan", "nhan_hang"]
     is_active: bool
     password: str | None = Field(default=None, min_length=10, max_length=128)
 

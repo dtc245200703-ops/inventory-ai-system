@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block head %}<link rel="stylesheet" href="/static/css/partner.css?v=1">{% endblock %}
+{% block content %}
+<section class="partner-stats" aria-label="Thống kê yêu cầu">
+  <article class="panel"><p>Chờ duyệt</p><strong id="pendingCount">—</strong></article>
+  <article class="panel"><p>Đã duyệt / Xuất hàng</p><strong id="approvedCount">—</strong></article>
+  <article class="panel"><p>Đã từ chối</p><strong id="rejectedCount">—</strong></article>
+</section>
+{% if user.role == 'nhan_hang' %}
+<section class="panel section-gap"><div class="panel-header"><div><h3>Hàng bạn đã nhận từ kho</h3><p>Cộng dồn theo phiếu xuất từ các yêu cầu đã được duyệt.</p></div></div>
+<div class="table-wrapper"><table><thead><tr><th>Mã hàng</th><th>Hàng hóa</th><th>Đơn vị</th><th>Tổng đã nhận</th></tr></thead><tbody id="receivedBody"></tbody></table></div></section>
+<section class="panel section-gap"><h3>Yêu cầu lấy thêm hàng</h3><p class="muted">Chọn hàng và số lượng bạn cần. Quản trị viên sẽ kiểm tra và xét duyệt trước khi xuất kho.</p>
+<form id="partnerRequestForm"><div id="requestLines"></div><button type="button" id="addRequestLine" class="btn-secondary">＋ Thêm hàng</button><label>Ghi chú<textarea id="requestNote" maxlength="1000" rows="2" placeholder="Nhu cầu, thời gian mong muốn…"></textarea></label><p id="requestError" class="error-message" role="alert"></p><button id="submitRequest" class="primary" type="submit">Gửi yêu cầu xét duyệt</button></form></section>
+{% endif %}
+<section class="panel section-gap"><div class="panel-header"><div><h3>{{ 'Yêu cầu từ các nhãn hàng' if user.role == 'admin' else 'Yêu cầu của bạn' }}</h3><p class="muted">{{ 'Duyệt sẽ tạo phiếu xuất và trừ tồn kho. Từ chối cần ghi rõ lý do.' if user.role == 'admin' else 'Xem trạng thái, phản hồi và chi tiết hàng đã được xuất.' }}</p></div><button id="refreshRequests" class="btn-secondary" type="button">↻ Làm mới</button></div>
+<label class="request-filter">Trạng thái<select id="requestFilter"><option value="">Tất cả</option><option value="pending">Chờ duyệt</option><option value="approved">Đã duyệt</option><option value="rejected">Từ chối</option></select></label>
+<div id="requestsList" class="requests-list" aria-live="polite"></div></section>
+{% if user.role == 'admin' %}
+<dialog id="reviewDialog" class="product-dialog" aria-labelledby="reviewTitle"><div class="panel-header"><h2 id="reviewTitle">Xét duyệt yêu cầu</h2><button id="closeReview" type="button" class="btn-secondary" aria-label="Đóng">✕</button></div><div id="reviewItems"></div>
+<form id="reviewForm"><label>Phản hồi / Lý do từ chối<textarea id="reviewNote" rows="3" maxlength="1000"></textarea></label><p id="reviewError" class="error-message" role="alert"></p><div class="toolbar"><button id="approveRequest" class="primary" type="submit" value="approve">Duyệt và xuất hàng</button><button id="rejectRequest" class="danger-button" type="submit" value="reject">Từ chối</button></div></form></dialog>
+{% endif %}
+{% endblock %}
+{% block scripts %}<script src="/static/js/partner.js?v=1"></script>{% endblock %}

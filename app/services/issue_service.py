@@ -24,6 +24,7 @@ def create_issue(
     reason: Optional[str] = None,
     receiver: Optional[str] = None,
     issue_no: Optional[str] = None,
+    commit: bool = True,
 ) -> models.Issue:
     """
     UC06 - Lập phiếu xuất kho.
@@ -116,8 +117,11 @@ def create_issue(
                 )
             )
 
-        db.commit()
-        db.refresh(issue)
+        if commit:
+            db.commit()
+            db.refresh(issue)
+        else:
+            db.flush()
         return issue
 
     except Exception:

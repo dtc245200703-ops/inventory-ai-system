@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.auth import (COOKIE_NAME, cookie_secure, current_user, hash_password,
+from app.auth import (COOKIE_NAME, cookie_secure, authenticated_user, hash_password,
                       token_hash, verify_password)
 from app.database import get_db
 from app.models import AuthSession, LoginThrottle, User, UserEmail
@@ -71,13 +71,13 @@ def login(payload: LoginInput, request: Request, response: Response, db: Session
 
 
 @router.get("/me")
-def me(request: Request, response: Response, user=Depends(current_user), db: Session = Depends(get_db)):
+def me(request: Request, response: Response, user=Depends(authenticated_user), db: Session = Depends(get_db)):
     response.headers["Cache-Control"] = "no-store"
     return {**public_user(user, db), "csrf_token": request.state.auth_session.csrf_token}
 
 
 @router.post("/logout", status_code=204)
-def logout(request: Request, response: Response, user=Depends(current_user), db: Session = Depends(get_db)):
+def logout(request: Request, response: Response, user=Depends(authenticated_user), db: Session = Depends(get_db)):
     db.delete(request.state.auth_session)
     db.commit()
     response.delete_cookie(COOKIE_NAME, path="/", secure=cookie_secure(), httponly=True, samesite="strict")

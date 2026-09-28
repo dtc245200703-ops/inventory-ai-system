@@ -17,7 +17,7 @@ def product_query(db):
 
 def used_product_ids(db, product_id=None):
     used = set()
-    for model in (models.ReceiptItem, models.IssueItem, models.StockMovement):
+    for model in (models.ReceiptItem, models.IssueItem, models.StockMovement, models.PartnerRequestItem):
         query = db.query(model.product_id)
         if product_id is not None:
             query = query.filter(model.product_id == product_id)

@@ -1,0 +1,20 @@
+.partner-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.partner-stats .panel { padding: 20px; }
+.partner-stats p { font-size: 13px; color: #64748b; }
+.partner-stats strong { display: block; font-size: 30px; color: #0f766e; margin-top: 6px; }
+.request-line { display: grid; grid-template-columns: minmax(180px, 2fr) minmax(90px, 1fr) auto; align-items: end; gap: 12px; margin-bottom: 12px; }
+.request-line label { min-width: 0; }
+.request-filter { display: block; max-width: 220px; font-size: 13px; margin: 16px 0; }
+.request-filter select { display: block; width: 100%; margin-top: 6px; }
+.requests-list { display: grid; gap: 14px; }
+.request-card { border: 1px solid #dce8e4; border-radius: 14px; padding: 18px; background: #fbfdfc; overflow-wrap: anywhere; }
+.request-card > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.request-card ul { padding-left: 20px; margin: 12px 0; }
+.request-card li { margin: 5px 0; }
+.request-card p { margin: 6px 0; white-space: pre-wrap; }
+.request-status { padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.request-status.pending { background: #fff2d6; color: #925900; }
+.request-status.approved { background: #dcf4e7; color: #176b44; }
+.request-status.rejected { background: #fee5e5; color: #a52c2c; }
+body[data-page=partner] textarea, body[data-page=requests] textarea { padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; resize: vertical; font: inherit; width: 100%; box-sizing: border-box; }
+@media(max-width:600px) { .partner-stats { gap: 8px; } .partner-stats .panel { padding: 12px; } .partner-stats strong { font-size: 24px; } .request-line { grid-template-columns: 1fr; } }

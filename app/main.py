@@ -7,12 +7,14 @@ from fastapi.templating import Jinja2Templates
 from app.database import engine
 from sqlalchemy import inspect, text
 from app import models
-from app.auth import optional_user, current_user, ROLE_LABELS
+from app.auth import optional_user, current_user, ROLE_LABELS, STAFF_ROLES
 from app.routers import auth, users, dashboard as dashboard_api, suppliers, registration, categories, units, reports, history
 from app.database import SessionLocal
 from app.services.catalog_service import import_existing_units
 from app.services.price_migration import migrate_prices
 from app.services.brand_migration import migrate_brands
+from app.services.partner_migration import migrate_partner_role
+from app.routers import partner_requests
 from app.routers import brands
 from app.database import get_db
 
@@ -32,6 +34,7 @@ from app.routers import (
 models.Base.metadata.create_all(bind=engine)
 migrate_prices(engine)
 migrate_brands(engine)
+migrate_partner_role(engine)
 # create_all does not add columns to an existing SQLite database. Keep demo data
 # compatible while introducing the recipient field for issue vouchers.
 if "receiver" not in {column["name"] for column in inspect(engine).get_columns("issues")}:
@@ -89,6 +92,7 @@ app.include_router(inventory.router)
 app.include_router(ai.router)
 app.include_router(ai.chat_router)
 app.include_router(brands.router)
+app.include_router(partner_requests.router)
 app.include_router(receipts.router)
 app.include_router(issues.router)
 app.include_router(auth.router)
@@ -1767,6 +1771,8 @@ def dashboard(
 ):
     if user is None:
         return RedirectResponse("/login", status_code=303)
+    if user.role == 'nhan_hang':
+        return RedirectResponse('/workspace/partner', status_code=303)
     return templates.TemplateResponse(
         request=request,
         name="dashboard.html",
@@ -1786,20 +1792,23 @@ def workspace_page(page: str, request: Request, user=Depends(optional_user)):
     if user is None:
         return RedirectResponse("/login", status_code=303)
     allowed = {"products": {"admin", "thu_kho"}, "inventory": {"admin", "thu_kho"},
+               "partner": {"nhan_hang"}, "requests": {"admin"},
                "brands": {"admin", "thu_kho"},
-               "categories": {"admin", "thu_kho"}, "units": {"admin", "thu_kho"}, "suppliers": set(ROLE_LABELS),
-               "receipts": set(ROLE_LABELS), "issues": set(ROLE_LABELS), "history": set(ROLE_LABELS),
+               "categories": {"admin", "thu_kho"}, "units": {"admin", "thu_kho"}, "suppliers": STAFF_ROLES,
+               "receipts": STAFF_ROLES, "issues": STAFF_ROLES, "history": STAFF_ROLES,
                "users": {"admin"}, "reports": {"admin", "ke_toan"}}
     if page not in allowed:
         raise HTTPException(404, "Không tìm thấy trang.")
     if user.role not in allowed[page]:
         raise HTTPException(403, "Bạn không có quyền truy cập trang này.")
     titles = {"products": "Hàng hóa", "inventory": "Tồn kho", "receipts": "Phiếu nhập",
+              "partner": "Hàng đã nhận và yêu cầu", "requests": "Duyệt yêu cầu nhãn hàng",
               "brands": "Nhãn hàng",
               "categories": "Nhóm hàng", "units": "Đơn vị tính", "suppliers": "Nhà cung cấp",
               "issues": "Phiếu xuất", "history": "Lịch sử nhập – xuất",
               "users": "Quản lý tài khoản", "reports": "Báo cáo – AI"}
-    template = ('catalog.html' if page in ['categories', 'units', 'suppliers', 'brands'] else
+    template = ('partner.html' if page in ['partner', 'requests'] else
+                'catalog.html' if page in ['categories', 'units', 'suppliers', 'brands'] else
                 'products.html' if page == 'products' else
                 'inventory.html' if page == 'inventory' else
                 'reports.html' if page == 'reports' else

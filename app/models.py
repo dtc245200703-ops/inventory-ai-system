@@ -59,6 +59,7 @@ class RoleEnum(str, enum.Enum):
     ADMIN = "admin"
     THU_KHO = "thu_kho"
     KE_TOAN = "ke_toan"
+    NHAN_HANG = "nhan_hang"
 
 
 class DocStatusEnum(str, enum.Enum):
@@ -85,7 +86,7 @@ class User(Base):
 
     __table_args__ = (
         CheckConstraint(
-            f"role IN ('{RoleEnum.ADMIN.value}', '{RoleEnum.THU_KHO.value}', '{RoleEnum.KE_TOAN.value}')",
+            f"role IN ('{RoleEnum.ADMIN.value}', '{RoleEnum.THU_KHO.value}', '{RoleEnum.KE_TOAN.value}', '{RoleEnum.NHAN_HANG.value}')",
             name="ck_users_role_valid",
         ),
     )
@@ -239,3 +240,31 @@ class LoginThrottle(Base):
     key = Column(String(64), primary_key=True)
     failures = Column(Integer, nullable=False, default=0)
     expires_at = Column(DateTime, nullable=False)
+
+
+class PartnerRequest(Base):
+    __tablename__ = 'partner_requests'
+    id = Column(Integer, primary_key=True)
+    requested_by = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    status = Column(String(20), nullable=False, default='pending')
+    note = Column(String(1000), nullable=True)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    reviewed_by = Column(Integer, ForeignKey('users.id'), nullable=True)
+    reviewed_at = Column(DateTime, nullable=True)
+    review_note = Column(String(1000), nullable=True)
+    issue_id = Column(Integer, ForeignKey('issues.id'), nullable=True, unique=True)
+    requester = relationship('User', foreign_keys=[requested_by])
+    reviewer = relationship('User', foreign_keys=[reviewed_by])
+    issue = relationship('Issue')
+    items = relationship('PartnerRequestItem', cascade='all, delete-orphan')
+    __table_args__ = (CheckConstraint("status IN ('pending', 'approved', 'rejected')", name='ck_partner_request_status'),)
+
+
+class PartnerRequestItem(Base):
+    __tablename__ = 'partner_request_items'
+    id = Column(Integer, primary_key=True)
+    request_id = Column(Integer, ForeignKey('partner_requests.id'), nullable=False, index=True)
+    product_id = Column(Integer, ForeignKey('products.product_id'), nullable=False)
+    quantity = Column(Integer, nullable=False)
+    product = relationship('Product')
+    __table_args__ = (CheckConstraint('quantity > 0', name='ck_partner_request_quantity'),)

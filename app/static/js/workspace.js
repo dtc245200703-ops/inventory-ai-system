@@ -1,5 +1,5 @@
 const page = document.body.dataset.page;
-const roleLabels = {admin: 'Quản trị viên', thu_kho: 'Thủ kho', ke_toan: 'Kế toán'};
+const roleLabels = {admin: 'Quản trị viên', thu_kho: 'Thủ kho', ke_toan: 'Kế toán', nhan_hang: 'Nhãn hàng / Đối tác'};
 let products = [], suppliers = [];
 const moneyText = value => value == null ? 'Chưa có giá' : amountText(minorUnits(String(value)));
 // Integer minor units keep the preview exact even for large prices.

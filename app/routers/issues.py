@@ -7,6 +7,7 @@ from app import models, schemas
 from app.auth import current_user, warehouse_user
 from app.exceptions import InsufficientStockError, InvalidQuantityError, ProductNotFoundError
 from app.services.issue_service import create_issue as create_issue_service
+from app.services.catalog_service import lock_catalog
 
 router = APIRouter(
     prefix="/issues", dependencies=[Depends(current_user)],
@@ -48,6 +49,7 @@ def get_issue(issue_id: int, db: Session = Depends(get_db)):
     ),
 )
 def create_new_issue(payload: schemas.IssueCreate, db: Session = Depends(get_db), user=Depends(warehouse_user)):
+    lock_catalog(db)
     try:
         issue = create_issue_service(
             db,
