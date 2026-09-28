@@ -39,7 +39,7 @@
 #aiChatSend:hover:not(:disabled) { background: #115e59; transform: translateY(-1px); box-shadow: 0 4px 12px #0f766e38; }
 #aiChatSend:active:not(:disabled) { transform: scale(.95); }
 #aiChatSend .ai-chat-spinner { display: none; }
-#aiChatSend.is-thinking { opacity: 1; background: #e5f3ef; box-shadow: none; }
+#aiChatSend.is-thinking { opacity: 1; background: #e5f3ef; box-shadow: none; cursor: default; }
 #aiChatSend.is-thinking .ai-chat-send-icon { display: none; }
 #aiChatSend.is-thinking .ai-chat-spinner { display: block; }
 .ai-chat button:disabled { cursor: wait; opacity: .5; }
