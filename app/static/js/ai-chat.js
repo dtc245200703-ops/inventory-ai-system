@@ -70,13 +70,16 @@
         busy = true;
         welcome.hidden = true;
         send.disabled = clear.disabled = input.disabled = true;
-        status.textContent = 'AI đang trả lời…';
+        status.classList.add('is-thinking');
+        status.replaceChildren(node('span', 'AI đang trả lời', 'ai-chat-status-text'));
+        const dots = node('span', undefined, 'ai-chat-thinking-dots');
+        dots.setAttribute('aria-hidden', 'true');
+        for (let i = 0; i < 3; i++) dots.append(node('span'));
+        status.append(dots);
+        send.classList.add('is-thinking');
+        send.setAttribute('aria-label', 'Đang chờ AI trả lời');
+        send.title = 'Đang chờ AI trả lời';
         const pending = addMessage('user', message);
-        const loading = addMessage('assistant', 'Đang xử lý câu hỏi…');
-        loading.classList.add('ai-chat-loading');
-        loading.setAttribute('aria-hidden', 'true');
-        const spinner = node('span', undefined, 'ai-chat-spinner');
-        loading.querySelector('.ai-chat-body').prepend(spinner);
         form.setAttribute('aria-busy', 'true');
         try {
             const response = await api('/ai/chat', {
@@ -93,7 +96,10 @@
             if (!history.length) welcome.hidden = false;
             status.textContent = `${error.message} Câu hỏi được giữ lại để bạn gửi lại.`;
         } finally {
-            loading.remove();
+            status.classList.remove('is-thinking');
+            send.classList.remove('is-thinking');
+            send.setAttribute('aria-label', 'Gửi câu hỏi');
+            send.title = 'Gửi câu hỏi (Enter)';
             form.removeAttribute('aria-busy');
             busy = false;
             send.disabled = clear.disabled = input.disabled = false;

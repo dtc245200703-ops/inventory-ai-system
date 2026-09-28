@@ -49,7 +49,8 @@ CHECK = r"""
     el('aiChatInput').value = 'Apple còn những hàng gì?'; el('aiChatForm').requestSubmit();
     await wait(100);
     check(window.fixtureRequests.length === 1 && el('aiChatSend').disabled, 'send and loading');
-    check(el('aiChatMessages').querySelector('.ai-chat-spinner'), 'loading spinner visible');
+    check(getComputedStyle(el('aiChatSend').querySelector('.ai-chat-spinner')).display !== 'none', 'send button spinner visible');
+    check(el('aiChatStatus').querySelectorAll('.ai-chat-thinking-dots span').length === 3, 'animated status dots');
     el('aiChatForm').dispatchEvent(new Event('submit', {cancelable: true}));
     check(window.fixtureRequests.length === 1, 'no duplicate send');
     el('aiChatClose').click();
@@ -57,7 +58,7 @@ CHECK = r"""
     await wait(100);
     check(el('ai').hidden && document.activeElement === el('aiChatToggle'), 'closed response does not steal focus');
     check(el('aiChatToggle').hasAttribute('data-unread'), 'unread response');
-    check(!el('aiChatMessages').querySelector('.ai-chat-loading'), 'loading removed after response');
+    check(!el('aiChatSend').classList.contains('is-thinking') && !el('aiChatStatus').textContent, 'loading removed after response');
     el('aiChatToggle').click();
     check(!el('aiChatMessages').querySelector('img') && !window.fixtureXSS, 'safe rendering');
     check(el('aiChatMessages').querySelector('.ai-chat-body strong'), 'bold rendered');
